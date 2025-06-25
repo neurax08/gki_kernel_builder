@@ -1,0 +1,89 @@
+[
+    {
+        "variant": "NONE",
+        "env": {
+            "KSU": "NONE",
+            "SUSFS": false
+        },
+        "config": {
+            "CONFIG_KSU": false
+        }
+    },
+    {
+        "variant": "OFFICIAL",
+        "env": {
+            "KSU": "OFFICIAL",
+            "SUSFS": false
+        },
+        "config": {
+            "CONFIG_KSU": true
+        }
+    },
+    {
+        "variant": "NEXT",
+        "env": {
+            "KSU": "NEXT",
+            "SUSFS": false
+        },
+        "config": {
+            "CONFIG_KSU": true,
+            "CONFIG_KSU_MANUAL_HOOK": true,
+            "CONFIG_KSU_KPROBES_HOOK": false
+        }
+    },
+    {
+        "variant": "SUKI",
+        "env": {
+            "KSU": "SUKI",
+            "SUSFS": false
+        },
+        "config": {
+            "CONFIG_KSU": true,
+            "CONFIG_KPM": true,
+            "CONFIG_KSU_SUSFS": false,
+            "CONFIG_KSU_MANUAL_HOOK": true,
+            "CONFIG_KSU_KPROBES_HOOK": false
+        }
+    },
+    {
+        "variant": "OFFICIAL-SUSFS",
+        "env": {
+            "KSU": "OFFICIAL",
+            "SUSFS": true
+        },
+        "config": {
+            "CONFIG_KSU": true,
+            "CONFIG_KSU_SUSFS": true,
+            "CONFIG_KSU_SUSFS_SUS_SU": true
+        }
+    },
+    {
+        "variant": "NEXT-SUSFS",
+        "env": {
+            "KSU": "NEXT",
+            "SUSFS": true
+        },
+        "config": {
+            "CONFIG_KSU": true,
+            "CONFIG_KSU_MANUAL_HOOK": true,
+            "CONFIG_KSU_KPROBES_HOOK": false,
+            "CONFIG_KSU_SUSFS": true,
+            "CONFIG_KSU_SUSFS_SUS_SU": false
+        }
+    },
+    {
+        "variant": "SUKI-SUSFS",
+        "env": {
+            "KSU": "SUKI",
+            "SUSFS": true
+        },
+        "config": {
+            "CONFIG_KSU": true,
+            "CONFIG_KPM": true,
+            "CONFIG_KSU_MANUAL_HOOK": true,
+            "CONFIG_KSU_KPROBES_HOOK": false,
+            "CONFIG_KSU_SUSFS": true,
+            "CONFIG_KSU_SUSFS_SUS_SU": false
+        }
+    }
+]

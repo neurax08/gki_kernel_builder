@@ -1,0 +1,280 @@
+name: Kernel Builder
+permissions:
+  contents: write
+  actions: write
+
+on:
+  workflow_call:
+    inputs:
+      KSU:
+        type: string
+        required: true
+      SUSFS:
+        type: string
+        required: true
+      LXC:
+        type: string
+        required: true
+      NOTIFY:
+        type: string
+        required: true
+
+    outputs:
+      output:
+        description: 'Output directory'
+        value: ${{ jobs.build.outputs.output }}
+      version:
+        description: 'Kernel version'
+        value: ${{ jobs.build.outputs.version }}
+      variant:
+        description: 'Variant suffix'
+        value: ${{ jobs.build.outputs.variant }}
+      susfs_version:
+        description: 'SUSFS version'
+        value: ${{ jobs.build.outputs.susfs_version }}
+      official_version:
+        description: 'Official KernelSU version'
+        value: ${{ jobs.build.outputs.official_version }}
+      suki_version:
+        description: 'SukiSU Ultra version'
+        value: ${{ jobs.build.outputs.suki_version }}
+      next_version:
+        description: 'KernelSU Next version'
+        value: ${{ jobs.build.outputs.next_version }}
+      toolchain:
+        description: 'Toolchain'
+        value: ${{ jobs.build.outputs.toolchain }}
+      build_time:
+        description: 'Build timestamp'
+        value: ${{ jobs.build.outputs.build_time }}
+      release_repo:
+        description: 'Release repo'
+        value: ${{ jobs.build.outputs.release_repo }}
+      release_branch:
+        description: 'Release branch'
+        value: ${{ jobs.build.outputs.release_branch }}
+      kernel_name:
+        description: 'Kernel name'
+        value: ${{ jobs.build.outputs.kernel_name }}
+
+  workflow_dispatch:
+    inputs:
+      KSU:
+        description: "KernelSU variant"
+        default: "NONE"
+        type: choice
+        options: ["NONE", "OFFICIAL", "NEXT", "SUKI"]
+
+      SUSFS:
+        description: "Enable SUSFS"
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+      LXC:
+        description: "Enable LXC"
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+      NOTIFY:
+        description: "Notify build on Telegram"
+        default: "true"
+        type: choice
+        options: ["false", "true"]
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  MAN_DISABLE: true
+  FORCE_COLOR: "1"
+  TTY_COMPATIBLE: "1"
+  TERM: xterm-256color
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      output:           ${{ steps.import_env.outputs.output }}
+      version:          ${{ steps.import_env.outputs.version }}
+      variant:          ${{ steps.import_env.outputs.variant }}
+      susfs_version:    ${{ steps.import_env.outputs.susfs_version }}
+      official_version: ${{ steps.import_env.outputs.official_version }}
+      suki_version:     ${{ steps.import_env.outputs.suki_version }}
+      next_version:     ${{ steps.import_env.outputs.next_version }}
+      toolchain:        ${{ steps.import_env.outputs.toolchain }}
+      build_time:       ${{ steps.import_env.outputs.build_time }}
+      release_repo:     ${{ steps.import_env.outputs.release_repo }}
+      release_branch:   ${{ steps.import_env.outputs.release_branch }}
+      kernel_name:      ${{ steps.import_env.outputs.kernel_name }}
+
+    env:
+        TG_CHAT_ID:   ${{ secrets.TG_CHAT_ID }}
+        TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+        GH_TOKEN:     ${{ secrets.GH_TOKEN }}
+    steps:
+      - name: Fail SUSFS requirement check
+        if: ${{ inputs.SUSFS == 'true' && inputs.KSU == 'NONE' }}
+        run: |
+          echo "::error::Cannot use SUSFS without KernelSU"
+          exit 1
+
+      - name: Checkout code & init submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - name: Check required secrets
+        env:
+          KSU: ${{ inputs.KSU }}
+          SUSFS: ${{ inputs.SUSFS }}
+          NOTIFY: ${{ inputs.NOTIFY }}
+        run: |
+          ret=0
+          
+          error() {
+            echo "::error::$*"
+            (( ret+=1 ))
+            return 0
+          }
+
+          # Validate secrets
+          [[ "$NOTIFY" == "true" && -z "$TG_CHAT_ID"  ]]  && error "Missing TG_CHAT_ID (Telegram Chat ID)"
+          [[ "$NOTIFY" == "true" && -z "$TG_BOT_TOKEN" ]] && error "Missing TG_BOT_TOKEN (Telegram Bot Token)"
+          [[ -z "$GH_TOKEN" ]]                            && error "Missing GH_TOKEN (Github PAT)"
+ 
+          if (( ret )); then
+            echo "::error::Required secrets are missing. Please refer to README.md for proper configuration."
+            exit $ret
+          fi
+
+      - name: astral-sh/setup-uv
+        uses: astral-sh/setup-uv@v6.4.3
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-suffix: "gki-builder"
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      - name: Create venv & Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq bc bison ccache curl flex git tar wget aria2
+
+          uv venv
+          uv sync --frozen --no-install-project
+
+      - name: Prepare ccache
+        run: |
+          echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          mkdir -p "$HOME/.ccache"
+          ccache --version
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ github.job }}-${{ github.ref_name }}
+          restore-keys: |
+            ccache-${{ github.job }}-${{ inputs.LXC }}
+
+      - name: Configure ccache
+        run: |
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+          ccache --set-config=compression_level=3
+          ccache --zero-stats
+          ccache --show-config
+
+      - name: Build
+        env:
+          KSU:   ${{ inputs.KSU }}
+          SUSFS: ${{ inputs.SUSFS }}
+          LXC:   ${{ inputs.LXC }}
+        run: |
+          uv run cli.py build
+
+      - name: Show ccache stats
+        run: ccache -s
+
+      - name: Import exported environment
+        id: import_env
+        run: |
+          ENV_FILE="$GITHUB_WORKSPACE/github.env"
+          [[ -f "$ENV_FILE" ]] || { echo "::error::$ENV_FILE missing"; exit 1; }
+          while IFS='=' read -r key value; do
+            # Ignore empty lines
+            [[ -z "$key" || "$key" == \#* ]] && continue
+
+            # Strip whitespaces
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs)
+
+            # Strip ' ' from string
+            value=${value//\'/}
+
+            # Validate key and value
+            if [[ -n "$key" && -n "$value" ]]; then
+              echo "$key=$value"
+              echo "$key=$value" >> "$GITHUB_ENV"
+              echo "$key=$value" >> "$GITHUB_OUTPUT"
+            fi
+          done < $ENV_FILE
+
+      - name: Upload final artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.kernel_name }}${{ env.variant }}
+          path: |
+            ${{ env.output }}/${{ env.kernel_name }}-${{ env.version }}${{ env.variant }}-AnyKernel3.zip
+            ${{ env.output }}/${{ env.kernel_name }}-${{ env.version }}${{ env.variant }}-boot.img
+
+      - name: Notify Telegram
+        if: ${{ inputs.NOTIFY == 'true' }}
+        env:
+          VERSION:           ${{ env.version }}
+          BUILD_DATE:        ${{ env.build_time }}
+          KSU_VARIANT:       ${{ inputs.KSU }}
+          LXC:               ${{ inputs.LXC }}
+          SUSFS:             ${{ inputs.SUSFS }}
+          SUSFS_VERSION:     ${{ env.susfs_version }}
+          KSU_VERSION:       ${{ env.ksu_version }}
+          TOOLCHAIN:         ${{ env.toolchain }}
+          KERNEL_NAME:       ${{ env.kernel_name }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID:     ${{ github.run_id }}
+        run: |
+          RUN_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          case "$KSU_VARIANT" in
+            OFFICIAL) KSU_NAME="KernelSU" ;;
+            SUKI)     KSU_NAME="SukiSU Ultra" ;;
+            NEXT)     KSU_NAME="KernelSU Next" ;;
+            NONE)     KSU_NAME="Disabled" ;;
+            *)        KSU_NAME="Unknown" ;;
+          esac
+          MESSAGE=$(cat <<-EOF
+          *$KERNEL_NAME Kernel CI*
+
+          🐧 *Linux Version*: $VERSION
+          📅 *Build Date*: $BUILD_DATE
+          🔰 *KernelSU*: $KSU_NAME$([ "$KSU_VARIANT" != "NONE" ] && echo " | $KSU_VERSION")
+          🎭 *SUSFS*: $([ "$SUSFS" = "true" ] && echo "Included | $SUSFS_VERSION" || echo "Disabled")
+          📦 *LXC*: $([ "$LXC" = "true" ] && echo "Included" || echo "Disabled")
+          🛠️ *Toolchain*: \`$TOOLCHAIN\`
+
+          [Workflow Run]($RUN_LINK)
+          #ci\_$GITHUB_RUN_ID
+          EOF
+          )
+
+          curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT_ID}" \
+            -d disable_web_page_preview=true \
+            -d parse_mode=Markdown \
+            -d "text=${MESSAGE}"
