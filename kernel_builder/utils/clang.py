@@ -9,7 +9,7 @@ from kernel_builder.utils.github import GithubAPI
 # Toolchain Repo
 SLIM_CLANG: Final[str] = "https://www.kernel.org/pub/tools/llvm/files/"
 AOSP_CLANG: Final[str] = (
-    "https://api.github.com/repos/bachnxuan/aosp_clang_mirror/releases/latest"
+    "https://api.github.com/repos/ESK-Project/aosp_clang_mirror/releases/latest"
 )
 RV_CLANG: Final[str] = "https://api.github.com/repos/Rv-Project/RvClang/releases/latest"
 YUKI_CLANG: Final[str] = (
