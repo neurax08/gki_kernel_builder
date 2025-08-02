@@ -15,7 +15,7 @@ KERNEL_REPO: Final[str] = "github.com:ESK-Project/android_kernel_xiaomi_mt6895"
 KERNEL_BRANCH: Final[str] = "16"
 
 # ---- AnyKernel3
-ANYKERNEL_REPO = "github.com:bachnxuan/AnyKernel3"
+ANYKERNEL_REPO = "github.com:ESK-Project/AnyKernel3"
 ANYKERNEL_BRANCH = "android12-5.10"
 
 # ---- Release
