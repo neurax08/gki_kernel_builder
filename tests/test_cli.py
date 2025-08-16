@@ -19,7 +19,6 @@ def test_env_var(mocker: MockerFixture) -> None:
     fake.assert_called_once_with("SUKI", False, True)
 
     assert result.exit_code == 0
-    assert result.output.strip() == "Start Build: ksu='SUKI', susfs=False, lxc=True"
     assert os.environ["KSU"] == "SUKI"
     assert os.environ["SUSFS"] == "false"
     assert os.environ["LXC"] == "true"
@@ -79,7 +78,7 @@ def test_clean(tmp_path: Path, clean_init) -> None:
     out  = fake / "fake_out"
 
     assert result.exit_code == 0
-    assert result.output.strip() == "Cleanup completed"
+    assert result.output.strip() == "Cleanup completed!"
     assert fake.exists()
     assert set(fake.iterdir()) == {root, out}
     assert list(root.iterdir()) == []
@@ -90,7 +89,7 @@ def test_clean_all(tmp_path: Path, clean_init):
     fake: Path = tmp_path / "out_dir"
 
     assert result.exit_code == 0
-    assert result.output.strip() == "Cleanup completed"
     assert fake.exists()
+    assert result.output.strip() == "Cleanup completed!"
     assert list(fake.iterdir()) == [fake / "fake_root"]
     assert list((fake / "fake_root").iterdir()) == []

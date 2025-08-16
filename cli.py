@@ -58,8 +58,6 @@ def build(
     if os.getenv("GITHUB_ACTIONS") != "true":
         dotenv.load_dotenv()
 
-    typer.echo(message=f"Start Build: {ksu=}, {susfs=}, {lxc=}")
-
     configure_log(logfile=LOGFILE)
 
     os.environ.update(
@@ -92,7 +90,7 @@ def clean(
 
     (ROOT / "github.env").unlink(missing_ok=True)
 
-    typer.echo("Cleanup completed")
+    typer.secho("Cleanup completed!", fg=typer.colors.GREEN)
 
 
 if __name__ == "__main__":
