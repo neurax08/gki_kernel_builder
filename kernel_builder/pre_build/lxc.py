@@ -13,7 +13,7 @@ class LXCPatcher(PatcherInterface):
 
     @override
     def apply(self) -> None:
-        LXC: Path = PATCHES / "lxc.patch"
+        LXC: Path = PATCHES / "lxc_support.patch"
         if self.lxc:
             log("Applying LXC Patches")
             apply_patch(LXC)

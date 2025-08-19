@@ -1,0 +1,5826 @@
+From eae3bbe7e8b52ae8cdf4dfd73c0ef5e7144711ce Mon Sep 17 00:00:00 2001
+From: bachnxuan <bachnxuan@gmail.com>
+Date: Tue, 19 Aug 2025 21:02:07 +0700
+Subject: [PATCH] treewide: Add LXC container support
+
+This commit combines the following changes:
+- drivers: staging: Add lindroid-drm-loopback (178e23816484)
+- (halium) GKI: use Android ABI padding for SYSVIPC task_struct fields (0153eeb77537)
+- GKI: use Android ABI padding for POSIX_MQUEUE user_struct fields (dcede0ab88de)
+- cgroup: fix cgroup prefix (0c136a83ecf6)
+- overlayfs: dont make DCACHE_OP_{HASH,COMPARE} weird (a3a7c43195a3)
+- gki_defconfig: Add LXC configs (00195ffde88d)
+- Patch mali gpu driver for libhybris (5f716e49a516)
+
+Signed-off-by: bachnxuan <bachnxuan@gmail.com>
+---
+ arch/arm64/configs/gki_defconfig              |   19 +-
+ .../arm/midgard/context/mali_kbase_context.c  |   30 +-
+ drivers/staging/Kconfig                       |    2 +
+ drivers/staging/Makefile                      |    1 +
+ drivers/staging/lindroid-drm-loopback/Kconfig |   18 +
+ .../staging/lindroid-drm-loopback/Makefile    |   35 +
+ .../lindroid-drm-loopback/evdi_connector.c    |  199 +++
+ .../lindroid-drm-loopback/evdi_cursor.c       |  291 +++++
+ .../lindroid-drm-loopback/evdi_cursor.h       |   62 +
+ .../lindroid-drm-loopback/evdi_debug.c        |   35 +
+ .../lindroid-drm-loopback/evdi_debug.h        |   57 +
+ .../staging/lindroid-drm-loopback/evdi_drm.h  |  214 ++++
+ .../lindroid-drm-loopback/evdi_drm_drv.c      |  800 ++++++++++++
+ .../lindroid-drm-loopback/evdi_drm_drv.h      |  256 ++++
+ .../lindroid-drm-loopback/evdi_encoder.c      |   74 ++
+ .../staging/lindroid-drm-loopback/evdi_fb.c   |  322 +++++
+ .../staging/lindroid-drm-loopback/evdi_gem.c  |  497 ++++++++
+ .../lindroid-drm-loopback/evdi_ioc32.c        |  105 ++
+ .../lindroid-drm-loopback/evdi_modeset.c      |  615 +++++++++
+ .../lindroid-drm-loopback/evdi_painter.c      | 1111 +++++++++++++++++
+ .../lindroid-drm-loopback/evdi_params.c       |   25 +
+ .../lindroid-drm-loopback/evdi_params.h       |   15 +
+ .../lindroid-drm-loopback/evdi_platform_dev.c |  152 +++
+ .../lindroid-drm-loopback/evdi_platform_dev.h |   47 +
+ .../lindroid-drm-loopback/evdi_platform_drv.c |  214 ++++
+ .../lindroid-drm-loopback/evdi_platform_drv.h |   40 +
+ .../lindroid-drm-loopback/evdi_sysfs.c        |  129 ++
+ .../lindroid-drm-loopback/evdi_sysfs.h        |   28 +
+ fs/overlayfs/util.c                           |    4 +-
+ include/linux/sched.h                         |   15 +-
+ include/linux/sched/user.h                    |    8 +-
+ kernel/cgroup/cgroup.c                        |    4 +
+ 32 files changed, 5395 insertions(+), 29 deletions(-)
+ create mode 100644 drivers/staging/lindroid-drm-loopback/Kconfig
+ create mode 100644 drivers/staging/lindroid-drm-loopback/Makefile
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_connector.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_cursor.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_cursor.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_debug.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_debug.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_drm.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_drm_drv.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_drm_drv.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_encoder.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_fb.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_gem.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_ioc32.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_modeset.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_painter.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_params.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_params.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_platform_dev.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_platform_dev.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_platform_drv.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_platform_drv.h
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_sysfs.c
+ create mode 100644 drivers/staging/lindroid-drm-loopback/evdi_sysfs.h
+
+diff --git a/arch/arm64/configs/gki_defconfig b/arch/arm64/configs/gki_defconfig
+index 1cfa7f651e45..30b23fb01f88 100644
+--- a/arch/arm64/configs/gki_defconfig
++++ b/arch/arm64/configs/gki_defconfig
+@@ -3,6 +3,8 @@ CONFIG_LOCALVERSION="-ESK"
+ CONFIG_UNAME_OVERRIDE=y
+ CONFIG_UNAME_OVERRIDE_TARGET="com.google.android.gms"
+ CONFIG_UNAME_OVERRIDE_STRING="5.10.209-android12-9-00019-g4ea09a298bb4-ab12292661"
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
+ CONFIG_AUDIT=y
+ CONFIG_NO_HZ=y
+ CONFIG_HIGH_RES_TIMERS=y
+@@ -28,10 +30,15 @@ CONFIG_CGROUP_SCHED=y
+ CONFIG_UCLAMP_TASK_GROUP=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CPUSETS=y
++CONFIG_CGROUP_DEVICE=y
+ CONFIG_CGROUP_CPUACCT=y
+ CONFIG_CGROUP_BPF=y
+ CONFIG_NAMESPACES=y
+-# CONFIG_PID_NS is not set
++CONFIG_USER_NS=y
++CONFIG_UTS_NS=y
++CONFIG_PID_NS=y
++CONFIG_IPC_NS=y
++CONFIG_NET_NS=y
+ CONFIG_RT_SOFTINT_OPTIMIZATION=y
+ # CONFIG_RD_BZIP2 is not set
+ # CONFIG_RD_LZMA is not set
+@@ -114,7 +121,6 @@ CONFIG_LLVM_POLLY=y
+ CONFIG_MODULES=y
+ CONFIG_MODULE_UNLOAD=y
+ CONFIG_MODVERSIONS=y
+-CONFIG_MODULE_SCMVERSION=y
+ CONFIG_BLK_CGROUP_IOCOST=y
+ CONFIG_BLK_INLINE_ENCRYPTION=y
+ CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK=y
+@@ -183,6 +189,7 @@ CONFIG_NF_CONNTRACK_PPTP=y
+ CONFIG_NF_CONNTRACK_SANE=y
+ CONFIG_NF_CONNTRACK_TFTP=y
+ CONFIG_NF_CT_NETLINK=y
++CONFIG_NETFILTER_XT_TARGET_CHECKSUM=y
+ CONFIG_NETFILTER_XT_TARGET_CLASSIFY=y
+ CONFIG_NETFILTER_XT_TARGET_CONNMARK=y
+ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK=y
+@@ -197,6 +204,7 @@ CONFIG_NETFILTER_XT_TARGET_TPROXY=y
+ CONFIG_NETFILTER_XT_TARGET_TRACE=y
+ CONFIG_NETFILTER_XT_TARGET_SECMARK=y
+ CONFIG_NETFILTER_XT_TARGET_TCPMSS=y
++CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+ CONFIG_NETFILTER_XT_MATCH_BPF=y
+ CONFIG_NETFILTER_XT_MATCH_COMMENT=y
+ CONFIG_NETFILTER_XT_MATCH_CONNLIMIT=y
+@@ -245,6 +253,8 @@ CONFIG_IP6_NF_MATCH_RPFILTER=y
+ CONFIG_IP6_NF_FILTER=y
+ CONFIG_IP6_NF_TARGET_REJECT=y
+ CONFIG_IP6_NF_MANGLE=y
++CONFIG_IP6_NF_NAT=y
++CONFIG_IP6_NF_TARGET_MASQUERADE=y
+ CONFIG_IP6_NF_RAW=y
+ CONFIG_IP6_NF_TARGET_HL=y
+ CONFIG_IP6_NF_MATCH_HL=y
+@@ -300,6 +310,7 @@ CONFIG_BT_HCIUART=y
+ CONFIG_BT_HCIUART_LL=y
+ CONFIG_BT_HCIUART_BCM=y
+ CONFIG_BT_HCIUART_QCA=y
++CONFIG_BT_HCIVHCI=y
+ CONFIG_RFKILL=y
+ CONFIG_NFC=y
+ CONFIG_PCI=y
+@@ -311,6 +322,7 @@ CONFIG_PCIE_DW_PLAT_EP=y
+ CONFIG_PCIE_QCOM=y
+ CONFIG_PCIE_KIRIN=y
+ CONFIG_PCI_ENDPOINT=y
++CONFIG_DEVTMPFS=y
+ CONFIG_FW_LOADER_USER_HELPER=y
+ # CONFIG_FW_CACHE is not set
+ # CONFIG_SUN50I_DE2_BUS is not set
+@@ -388,7 +400,6 @@ CONFIG_JOYSTICK_XPAD_LEDS=y
+ CONFIG_INPUT_TOUCHSCREEN=y
+ CONFIG_INPUT_MISC=y
+ CONFIG_INPUT_UINPUT=y
+-# CONFIG_VT is not set
+ # CONFIG_LEGACY_PTYS is not set
+ CONFIG_SERIAL_8250=y
+ # CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
+@@ -404,6 +415,7 @@ CONFIG_SERIAL_SAMSUNG_CONSOLE=y
+ CONFIG_SERIAL_MSM_GENI_EARLY_CONSOLE=y
+ CONFIG_SERIAL_SPRD=y
+ CONFIG_SERIAL_SPRD_CONSOLE=y
++CONFIG_NULL_TTY=y
+ CONFIG_HVC_DCC=y
+ CONFIG_HVC_DCC_SERIALIZE_SMP=y
+ CONFIG_SERIAL_DEV_BUS=y
+@@ -734,3 +746,4 @@ CONFIG_TCP_CONG_BBR=y
+ # CONFIG_DEFAULT_CUBIC is not set
+ CONFIG_DEFAULT_BBR=y
+ CONFIG_DEFAULT_TCP_CONG="bbr"
++CONFIG_DRM_LINDROID_EVDI=y
+diff --git a/drivers/gpu/mediatek/mali-valhall/gpu/arm/midgard/context/mali_kbase_context.c b/drivers/gpu/mediatek/mali-valhall/gpu/arm/midgard/context/mali_kbase_context.c
+index a71a08872dd8..dcfebb558651 100644
+--- a/drivers/gpu/mediatek/mali-valhall/gpu/arm/midgard/context/mali_kbase_context.c
++++ b/drivers/gpu/mediatek/mali-valhall/gpu/arm/midgard/context/mali_kbase_context.c
+@@ -132,6 +132,7 @@ int kbase_context_common_init(struct kbase_context *kctx)
+ {
+ 	const unsigned long cookies_mask = KBASE_COOKIE_MASK;
+ 	int err = 0;
++	struct task_struct *task;
+ 
+ 	/* creating a context is considered a disjoint event */
+ 	kbase_disjoint_event(kctx->kbdev);
+@@ -149,30 +150,19 @@ int kbase_context_common_init(struct kbase_context *kctx)
+ 
+ 	/* Check if this is a Userspace created context */
+ 	if (likely(kctx->filp)) {
+-		struct pid *pid_struct;
+ 
+ 		rcu_read_lock();
+-		pid_struct = find_get_pid(kctx->tgid);
+-		if (likely(pid_struct)) {
+-			struct task_struct *task = pid_task(pid_struct, PIDTYPE_PID);
+-
+-			if (likely(task)) {
+-				/* Take a reference on the task to avoid slow lookup
+-				 * later on from the page allocation loop.
+-				 */
+-				get_task_struct(task);
+-				kctx->task = task;
+-			} else {
+-				dev_err(kctx->kbdev->dev,
+-					"Failed to get task pointer for %s/%d",
+-					current->comm, current->pid);
+-				err = -ESRCH;
+-			}
+-
+-			put_pid(pid_struct);
++		task = current;
++
++		if (likely(task)) {
++			/* Take a reference on the task to avoid slow lookup
++			 * later on from the page allocation loop.
++			 */
++			get_task_struct(task);
++			kctx->task = task;
+ 		} else {
+ 			dev_err(kctx->kbdev->dev,
+-				"Failed to get pid pointer for %s/%d",
++				"Failed to get task pointer for %s/%d",
+ 				current->comm, current->pid);
+ 			err = -ESRCH;
+ 		}
+diff --git a/drivers/staging/Kconfig b/drivers/staging/Kconfig
+index 2d0310448eba..9b7ca3c2d0ca 100644
+--- a/drivers/staging/Kconfig
++++ b/drivers/staging/Kconfig
+@@ -118,4 +118,6 @@ source "drivers/staging/wfx/Kconfig"
+ 
+ source "drivers/staging/hikey9xx/Kconfig"
+ 
++source "drivers/staging/lindroid-drm-loopback"
++
+ endif # STAGING
+diff --git a/drivers/staging/Makefile b/drivers/staging/Makefile
+index 757a892ab5b9..882cb8411dd1 100644
+--- a/drivers/staging/Makefile
++++ b/drivers/staging/Makefile
+@@ -49,3 +49,4 @@ obj-$(CONFIG_KPC2000)		+= kpc2000/
+ obj-$(CONFIG_QLGE)		+= qlge/
+ obj-$(CONFIG_WFX)		+= wfx/
+ obj-y				+= hikey9xx/
++obj-y 				+= lindroid-drm-loopback/
+diff --git a/drivers/staging/lindroid-drm-loopback/Kconfig b/drivers/staging/lindroid-drm-loopback/Kconfig
+new file mode 100644
+index 000000000000..663cdef0415a
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/Kconfig
+@@ -0,0 +1,18 @@
++#
++# Copyright (c) 2015 - 2019 DisplayLink (UK) Ltd.
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License v2. See the file COPYING in the main directory of this archive for
++# more details.
++#
++
++config DRM_LINDROID_EVDI
++	tristate "Extensible Virtual Display Interface"
++	depends on DRM
++	depends on MODULES
++	select DRM_KMS_HELPER
++	help
++		This is a KMS interface driver allowing user-space programs to
++		register a virtual display (that imitates physical monitor) and
++		retrieve contents (as a frame buffer) that system renders on it.
++		Say M/Y to add support for these devices via DRM/KMS interfaces.
+diff --git a/drivers/staging/lindroid-drm-loopback/Makefile b/drivers/staging/lindroid-drm-loopback/Makefile
+new file mode 100644
+index 000000000000..2f3dd80c61e7
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/Makefile
+@@ -0,0 +1,35 @@
++#
++# Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++#
++# Copyright (c) 2024 Lindroid Project.
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License v2. See the file COPYING in the main directory of this archive for
++# more details.
++#
++ifneq ($(DKMS_BUILD),)
++# DKMS
++KERN_DIR := /lib/modules/$(KERNELRELEASE)/build
++
++ccflags-y := -Wno-error -isystem include/uapi/drm $(CFLAGS) $(EL8FLAG) $(EL9FLAG) $(RPIFLAG)
++evdi-lindroid-y := evdi_platform_drv.o evdi_platform_dev.o evdi_sysfs.o evdi_modeset.o evdi_connector.o evdi_encoder.o evdi_drm_drv.o evdi_fb.o evdi_gem.o evdi_painter.o evdi_params.o evdi_cursor.o evdi_debug.o
++evdi-lindroid-$(CONFIG_COMPAT) += evdi_ioc32.o
++obj-m := evdi-lindroid.o
++
++KBUILD_VERBOSE ?= 1
++
++all:
++	$(MAKE) KBUILD_VERBOSE=$(KBUILD_VERBOSE) M=$(CURDIR) SUBDIRS=$(CURDIR) SRCROOT=$(CURDIR) CONFIG_MODULE_SIG= -C $(KERN_DIR) modules
++
++clean:
++	@echo $(KERN_DIR)
++	$(MAKE) KBUILD_VERBOSE=$(KBUILD_VERBOSE) M=$(CURDIR) SUBDIRS=$(CURDIR) SRCROOT=$(CURDIR) -C $(KERN_DIR) clean
++
++else
++
++ccflags-y := -isystem include/uapi/drm $(CFLAGS) $(EL8FLAG) $(EL9FLAG) $(RPIFLAG)
++evdi-y := evdi_platform_drv.o evdi_platform_dev.o evdi_sysfs.o evdi_modeset.o evdi_connector.o evdi_encoder.o evdi_drm_drv.o evdi_fb.o evdi_gem.o evdi_painter.o evdi_params.o evdi_cursor.o evdi_debug.o
++evdi-$(CONFIG_COMPAT) += evdi_ioc32.o
++obj-$(CONFIG_DRM_LINDROID_EVDI) := evdi.o
++
++endif # ifneq ($(DKMS_BUILD),)
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_connector.c b/drivers/staging/lindroid-drm-loopback/evdi_connector.c
+new file mode 100644
+index 000000000000..2692e7f607b2
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_connector.c
+@@ -0,0 +1,199 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * Based on parts on udlfb.c:
++ * Copyright (C) 2009 its respective authors
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/version.h>
++#include <drm/drm_crtc.h>
++#include <drm/drm_crtc_helper.h>
++#include <drm/drm_atomic_helper.h>
++#include "evdi_drm_drv.h"
++
++#if KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#include <drm/drm_probe_helper.h>
++#endif
++
++/*
++ * dummy connector to just get EDID,
++ * all EVDI appear to have a DVI-D
++ */
++
++static int evdi_get_modes(struct drm_connector *connector)
++{
++	struct evdi_device *evdi = connector->dev->dev_private;
++	int ret = 0;
++	struct drm_display_mode *new_mode;
++EVDI_INFO("GET MODES");
++
++	new_mode = drm_mode_create(connector->dev);
++	strncpy(new_mode->name, "Lindroid", 8);
++	new_mode->clock = evdi->painter->height * evdi->painter->width * evdi->painter->refresh_rate / 1000;
++	new_mode->hdisplay = evdi->painter->width;
++	new_mode->hsync_start = evdi->painter->width;
++	new_mode->hsync_end = evdi->painter->width;
++	new_mode->htotal = evdi->painter->width;
++	new_mode->vdisplay = evdi->painter->height;
++	new_mode->vsync_start = evdi->painter->height;
++	new_mode->vsync_end = evdi->painter->height;
++	new_mode->vtotal = evdi->painter->height;
++	new_mode->flags = 0;
++	new_mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
++
++	drm_mode_probed_add(connector, new_mode);
++	if (ret) {
++		EVDI_ERROR("Failed to set edid property! error: %d", ret);
++		goto err;
++	}
++
++	EVDI_INFO("(card%d) Edid property set", evdi->dev_index);
++err:
++	return ret;
++}
++
++static bool is_lowest_frequency_mode_of_given_resolution(
++	struct drm_connector *connector, struct drm_display_mode *mode)
++{
++	struct drm_display_mode *modeptr;
++
++	list_for_each_entry(modeptr, &(connector->modes), head) {
++		if (modeptr->hdisplay == mode->hdisplay &&
++			modeptr->vdisplay == mode->vdisplay &&
++			drm_mode_vrefresh(modeptr) < drm_mode_vrefresh(mode)) {
++			return false;
++		}
++	}
++	return true;
++}
++
++static enum drm_mode_status evdi_mode_valid(struct drm_connector *connector,
++					    struct drm_display_mode *mode)
++{
++	struct evdi_device *evdi = connector->dev->dev_private;
++	uint32_t area_limit = mode->hdisplay * mode->vdisplay;
++	uint32_t mode_limit = area_limit * drm_mode_vrefresh(mode);
++
++	if (evdi->pixel_per_second_limit == 0)
++		return MODE_OK;
++
++	if (area_limit > evdi->pixel_area_limit) {
++		EVDI_WARN(
++			"(card%d) Mode %dx%d@%d rejected. Reason: mode area too big\n",
++			evdi->dev_index,
++			mode->hdisplay,
++			mode->vdisplay,
++			drm_mode_vrefresh(mode));
++		return MODE_BAD;
++	}
++
++	if (mode_limit <= evdi->pixel_per_second_limit)
++		return MODE_OK;
++
++	if (is_lowest_frequency_mode_of_given_resolution(connector, mode)) {
++		EVDI_WARN(
++			"(card%d) Mode exceeds maximal frame rate for the device. Mode %dx%d@%d may have a limited output frame rate",
++			evdi->dev_index,
++			mode->hdisplay,
++			mode->vdisplay,
++			drm_mode_vrefresh(mode));
++		return MODE_OK;
++	}
++
++	EVDI_WARN(
++		"(card%d) Mode %dx%d@%d rejected. Reason: mode pixel clock too high\n",
++		evdi->dev_index,
++		mode->hdisplay,
++		mode->vdisplay,
++		drm_mode_vrefresh(mode));
++
++	return MODE_BAD;
++}
++
++static enum drm_connector_status
++evdi_detect(struct drm_connector *connector, __always_unused bool force)
++{
++	struct evdi_device *evdi = connector->dev->dev_private;
++
++	EVDI_CHECKPT();
++	if (evdi_painter_is_connected(evdi->painter)) {
++		EVDI_INFO("(card%d) Connector state: connected\n",
++			   evdi->dev_index);
++		return connector_status_connected;
++	}
++	EVDI_VERBOSE("(card%d) Connector state: disconnected\n",
++		   evdi->dev_index);
++	return connector_status_disconnected;
++}
++
++static void evdi_connector_destroy(struct drm_connector *connector)
++{
++	drm_connector_unregister(connector);
++	drm_connector_cleanup(connector);
++	kfree(connector);
++}
++
++static struct drm_encoder *evdi_best_encoder(struct drm_connector *connector)
++{
++#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	struct drm_encoder *encoder;
++
++	drm_connector_for_each_possible_encoder(connector, encoder) {
++		return encoder;
++	}
++
++	return NULL;
++#else
++	return drm_encoder_find(connector->dev,
++				NULL,
++				connector->encoder_ids[0]);
++#endif
++}
++
++static struct drm_connector_helper_funcs evdi_connector_helper_funcs = {
++	.get_modes = evdi_get_modes,
++	.mode_valid = evdi_mode_valid,
++	.best_encoder = evdi_best_encoder,
++};
++
++static const struct drm_connector_funcs evdi_connector_funcs = {
++	.detect = evdi_detect,
++	.fill_modes = drm_helper_probe_single_connector_modes,
++	.destroy = evdi_connector_destroy,
++	.reset = drm_atomic_helper_connector_reset,
++	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
++	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state
++};
++
++int evdi_connector_init(struct drm_device *dev, struct drm_encoder *encoder)
++{
++	struct drm_connector *connector;
++	struct evdi_device *evdi = dev->dev_private;
++EVDI_INFO("Init connector");
++	connector = kzalloc(sizeof(struct drm_connector), GFP_KERNEL);
++	if (!connector)
++		return -ENOMEM;
++
++	/* TODO: Initialize connector with actual connector type */
++	drm_connector_init(dev, connector, &evdi_connector_funcs,
++			   DRM_MODE_CONNECTOR_DisplayPort);
++	drm_connector_helper_add(connector, &evdi_connector_helper_funcs);
++	connector->polled = DRM_CONNECTOR_POLL_HPD;
++
++	drm_connector_register(connector);
++
++	evdi->conn = connector;
++
++#if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE  || defined(EL8)
++	drm_connector_attach_encoder(connector, encoder);
++#else
++	drm_mode_connector_attach_encoder(connector, encoder);
++#endif
++	return 0;
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_cursor.c b/drivers/staging/lindroid-drm-loopback/evdi_cursor.c
+new file mode 100644
+index 000000000000..3450f2051554
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_cursor.c
+@@ -0,0 +1,291 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * evdi_cursor.c
++ *
++ * Copyright (c) 2016 The Chromium OS Authors
++ * Copyright (c) 2016 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/compiler.h>
++#include <linux/mutex.h>
++#include <linux/version.h>
++
++#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++#include <drm/drmP.h>
++#endif
++#include <drm/drm_crtc_helper.h>
++
++#include "evdi_cursor.h"
++#include "evdi_drm_drv.h"
++
++/*
++ * EVDI drm cursor private structure.
++ */
++struct evdi_cursor {
++	bool enabled;
++	int32_t x;
++	int32_t y;
++	uint32_t width;
++	uint32_t height;
++	int32_t hot_x;
++	int32_t hot_y;
++	uint32_t pixel_format;
++	uint32_t stride;
++	struct evdi_gem_object *obj;
++	struct mutex lock;
++};
++
++static void evdi_cursor_set_gem(struct evdi_cursor *cursor,
++				struct evdi_gem_object *obj)
++{
++	if (obj)
++		drm_gem_object_get(&obj->base);
++	if (cursor->obj)
++#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
++		drm_gem_object_put(&cursor->obj->base);
++#else
++		drm_gem_object_put_unlocked(&cursor->obj->base);
++#endif
++
++	cursor->obj = obj;
++}
++
++struct evdi_gem_object *evdi_cursor_gem(struct evdi_cursor *cursor)
++{
++	return cursor->obj;
++}
++
++int evdi_cursor_init(struct evdi_cursor **cursor)
++{
++	if (WARN_ON(*cursor))
++		return -EINVAL;
++
++	*cursor = kzalloc(sizeof(struct evdi_cursor), GFP_KERNEL);
++	if (*cursor) {
++		mutex_init(&(*cursor)->lock);
++		return 0;
++	} else {
++		return -ENOMEM;
++	}
++}
++
++void evdi_cursor_lock(struct evdi_cursor *cursor)
++{
++	mutex_lock(&cursor->lock);
++}
++
++void evdi_cursor_unlock(struct evdi_cursor *cursor)
++{
++	mutex_unlock(&cursor->lock);
++}
++
++void evdi_cursor_free(struct evdi_cursor *cursor)
++{
++	if (WARN_ON(!cursor))
++		return;
++	evdi_cursor_set_gem(cursor, NULL);
++	kfree(cursor);
++}
++
++bool evdi_cursor_enabled(struct evdi_cursor *cursor)
++{
++	return cursor->enabled;
++}
++
++void evdi_cursor_enable(struct evdi_cursor *cursor, bool enable)
++{
++	evdi_cursor_lock(cursor);
++	cursor->enabled = enable;
++	if (!enable)
++		evdi_cursor_set_gem(cursor, NULL);
++	evdi_cursor_unlock(cursor);
++}
++
++void evdi_cursor_set(struct evdi_cursor *cursor,
++		     struct evdi_gem_object *obj,
++		     uint32_t width, uint32_t height,
++		     int32_t hot_x, int32_t hot_y,
++		     uint32_t pixel_format, uint32_t stride)
++{
++	int err = 0;
++
++	evdi_cursor_lock(cursor);
++	if (obj && !obj->vmapping)
++		err = evdi_gem_vmap(obj);
++
++	if (err != 0) {
++		EVDI_ERROR("Failed to map cursor.\n");
++		obj = NULL;
++	}
++
++	cursor->enabled = obj != NULL;
++	cursor->width = width;
++	cursor->height = height;
++	cursor->hot_x = hot_x;
++	cursor->hot_y = hot_y;
++	cursor->pixel_format = pixel_format;
++	cursor->stride = stride;
++	evdi_cursor_set_gem(cursor, obj);
++
++	evdi_cursor_unlock(cursor);
++}
++
++void evdi_cursor_move(struct evdi_cursor *cursor, int32_t x, int32_t y)
++{
++	evdi_cursor_lock(cursor);
++	cursor->x = x;
++	cursor->y = y;
++	evdi_cursor_unlock(cursor);
++}
++
++static inline uint32_t blend_component(uint32_t pixel,
++				  uint32_t blend,
++				  uint32_t alpha)
++{
++	uint32_t pre_blend = (pixel * (255 - alpha) + blend * alpha);
++
++	return (pre_blend + ((pre_blend + 1) << 8)) >> 16;
++}
++
++static inline uint32_t blend_alpha(const uint32_t pixel_val32,
++				uint32_t blend_val32)
++{
++	uint32_t alpha = (blend_val32 >> 24);
++
++	return blend_component(pixel_val32 & 0xff,
++			       blend_val32 & 0xff, alpha) |
++			blend_component((pixel_val32 & 0xff00) >> 8,
++				(blend_val32 & 0xff00) >> 8, alpha) << 8 |
++			blend_component((pixel_val32 & 0xff0000) >> 16,
++				(blend_val32 & 0xff0000) >> 16, alpha) << 16;
++}
++
++static int evdi_cursor_compose_pixel(char __user *buffer,
++				     int const cursor_value,
++				     int const fb_value,
++				     int cmd_offset)
++{
++	int const composed_value = blend_alpha(fb_value, cursor_value);
++
++	return copy_to_user(buffer + cmd_offset, &composed_value, 4);
++}
++
++int evdi_cursor_compose_and_copy(struct evdi_cursor *cursor,
++				 struct evdi_framebuffer *efb,
++				 char __user *buffer,
++				 int buf_byte_stride)
++{
++	int x, y;
++	struct drm_framebuffer *fb = &efb->base;
++	const int h_cursor_w = cursor->width >> 1;
++	const int h_cursor_h = cursor->height >> 1;
++	uint32_t *cursor_buffer = NULL;
++	uint32_t bytespp = 0;
++
++	if (!cursor->enabled)
++		return 0;
++
++	if (!cursor->obj)
++		return -EINVAL;
++
++	if (!cursor->obj->vmapping)
++		return -EINVAL;
++
++	bytespp = evdi_fb_get_bpp(cursor->pixel_format);
++	bytespp = DIV_ROUND_UP(bytespp, 8);
++	if (bytespp != 4) {
++		EVDI_ERROR("Unsupported cursor format bpp=%u\n", bytespp);
++		return -EINVAL;
++	}
++
++	if (cursor->width * cursor->height * bytespp >
++	    cursor->obj->base.size){
++		EVDI_ERROR("Wrong cursor size\n");
++		return -EINVAL;
++	}
++
++	cursor_buffer = (uint32_t *)cursor->obj->vmapping;
++
++	for (y = -h_cursor_h; y < h_cursor_h; ++y) {
++		for (x = -h_cursor_w; x < h_cursor_w; ++x) {
++			uint32_t curs_val;
++			int *fbsrc;
++			int fb_value;
++			int cmd_offset;
++			int cursor_pix;
++			int const mouse_pix_x = cursor->x + x + h_cursor_w;
++			int const mouse_pix_y = cursor->y + y + h_cursor_h;
++			bool const is_pix_sane =
++				mouse_pix_x >= 0 &&
++				mouse_pix_y >= 0 &&
++				mouse_pix_x < (int)fb->width &&
++				mouse_pix_y < (int)fb->height;
++
++			if (!is_pix_sane)
++				continue;
++
++			cursor_pix = h_cursor_w+x +
++				    (h_cursor_h+y)*cursor->width;
++			curs_val = le32_to_cpu(cursor_buffer[cursor_pix]);
++			fbsrc = (int *)(efb->obj->vmapping + fb->offsets[0]);
++			fb_value = *(fbsrc + ((fb->pitches[0]>>2) *
++						  mouse_pix_y + mouse_pix_x));
++			cmd_offset = (buf_byte_stride * mouse_pix_y) +
++						       (mouse_pix_x * bytespp);
++			if (evdi_cursor_compose_pixel(buffer,
++						      curs_val,
++						      fb_value,
++						      cmd_offset)) {
++				EVDI_ERROR("Failed to compose cursor pixel\n");
++				return -EFAULT;
++			}
++		}
++	}
++
++	return 0;
++}
++
++void evdi_cursor_position(struct evdi_cursor *cursor, int32_t *x, int32_t *y)
++{
++	*x = cursor->x;
++	*y = cursor->y;
++}
++
++void evdi_cursor_hotpoint(struct evdi_cursor *cursor,
++			  int32_t *hot_x, int32_t *hot_y)
++{
++	*hot_x = cursor->hot_x;
++	*hot_y = cursor->hot_y;
++}
++
++void evdi_cursor_size(struct evdi_cursor *cursor,
++		      uint32_t *width, uint32_t *height)
++{
++	*width = cursor->width;
++	*height = cursor->height;
++}
++
++void evdi_cursor_format(struct evdi_cursor *cursor, uint32_t *format)
++{
++	*format = cursor->pixel_format;
++}
++
++void evdi_cursor_stride(struct evdi_cursor *cursor, uint32_t *stride)
++{
++	*stride = cursor->stride;
++}
++
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_cursor.h b/drivers/staging/lindroid-drm-loopback/evdi_cursor.h
+new file mode 100644
+index 000000000000..13d8a8ab3687
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_cursor.h
+@@ -0,0 +1,62 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * evdi_cursor.h
++ *
++ * Copyright (c) 2016 The Chromium OS Authors
++ * Copyright (c) 2016 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _EVDI_CURSOR_H_
++#define _EVDI_CURSOR_H_
++
++#include <linux/version.h>
++#include <linux/module.h>
++#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++#include <drm/drmP.h>
++#endif
++#include <drm/drm_crtc.h>
++
++struct evdi_cursor;
++struct evdi_framebuffer;
++struct evdi_gem_object;
++
++int evdi_cursor_init(struct evdi_cursor **cursor);
++void evdi_cursor_free(struct evdi_cursor *cursor);
++void evdi_cursor_lock(struct evdi_cursor *cursor);
++void evdi_cursor_unlock(struct evdi_cursor *cursor);
++bool evdi_cursor_enabled(struct evdi_cursor *cursor);
++void evdi_cursor_enable(struct evdi_cursor *cursor, bool enabled);
++void evdi_cursor_set(struct evdi_cursor *cursor,
++		     struct evdi_gem_object *obj,
++		     uint32_t width, uint32_t height,
++		     int32_t hot_x, int32_t hot_y,
++		     uint32_t pixel_format, uint32_t stride);
++
++void evdi_cursor_move(struct evdi_cursor *cursor, int32_t x, int32_t y);
++void evdi_cursor_position(struct evdi_cursor *cursor, int32_t *x, int32_t *y);
++void evdi_cursor_hotpoint(struct evdi_cursor *cursor,
++			  int32_t *hot_x, int32_t *hot_y);
++void evdi_cursor_size(struct evdi_cursor *cursor,
++		      uint32_t *width, uint32_t *height);
++void evdi_cursor_format(struct evdi_cursor *cursor, uint32_t *format);
++void evdi_cursor_stride(struct evdi_cursor *cursor, uint32_t *stride);
++struct evdi_gem_object *evdi_cursor_gem(struct evdi_cursor *cursor);
++
++int evdi_cursor_compose_and_copy(struct evdi_cursor *cursor,
++				 struct evdi_framebuffer *efb,
++				 char __user *buffer,
++				 int buf_byte_stride);
++#endif
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_debug.c b/drivers/staging/lindroid-drm-loopback/evdi_debug.c
+new file mode 100644
+index 000000000000..0f941d35bebf
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_debug.c
+@@ -0,0 +1,35 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Copyright (c) 2015 - 2019 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/sched.h>
++#include <linux/proc_fs.h>
++
++#include "evdi_debug.h"
++
++void evdi_log_process(char *buf, size_t size)
++{
++	int task_pid = (int)task_pid_nr(current);
++	char task_comm[TASK_COMM_LEN] = { 0 };
++
++	get_task_comm(task_comm, current);
++
++	if (current->group_leader) {
++		char process_comm[TASK_COMM_LEN] = { 0 };
++
++		get_task_comm(process_comm, current->group_leader);
++		snprintf(buf, size, "Task %d (%s) of process %d (%s)",
++			  task_pid,
++			  task_comm,
++			  (int)task_pid_nr(current->group_leader),
++			  process_comm);
++	} else {
++		snprintf(buf, size, "Task %d (%s)",
++			  task_pid,
++			  task_comm);
++	}
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_debug.h b/drivers/staging/lindroid-drm-loopback/evdi_debug.h
+new file mode 100644
+index 000000000000..14000811e03b
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_debug.h
+@@ -0,0 +1,57 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * Copyright (c) 2015 - 2019 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#ifndef EVDI_DEBUG_H
++#define EVDI_DEBUG_H
++
++#include "evdi_params.h"
++
++#define EVDI_LOGLEVEL_FATAL   1
++#define EVDI_LOGLEVEL_ERROR   2
++#define EVDI_LOGLEVEL_WARN    3
++#define EVDI_LOGLEVEL_INFO    4
++#define EVDI_LOGLEVEL_DEBUG   5
++#define EVDI_LOGLEVEL_VERBOSE 6
++
++#define EVDI_PRINTK(KERN_LEVEL, LEVEL, FORMAT_STR, ...)	do { \
++	if (evdi_loglevel >= LEVEL) {\
++		printk(KERN_LEVEL "evdi: " FORMAT_STR, ##__VA_ARGS__); \
++	} \
++} while (0)
++
++#define EVDI_FATAL(FORMAT_STR, ...) \
++	EVDI_PRINTK(KERN_CRIT, EVDI_LOGLEVEL_FATAL,\
++		    "[F] %s:%d " FORMAT_STR, __func__, __LINE__, ##__VA_ARGS__)
++
++#define EVDI_ERROR(FORMAT_STR, ...) \
++	EVDI_PRINTK(KERN_ERR, EVDI_LOGLEVEL_ERROR,\
++		    "[E] %s:%d " FORMAT_STR, __func__, __LINE__, ##__VA_ARGS__)
++
++#define EVDI_WARN(FORMAT_STR, ...) \
++	EVDI_PRINTK(KERN_WARNING, EVDI_LOGLEVEL_WARN,\
++		    "[W] %s:%d " FORMAT_STR, __func__, __LINE__, ##__VA_ARGS__)
++
++#define EVDI_INFO(FORMAT_STR, ...) \
++	EVDI_PRINTK(KERN_DEFAULT, EVDI_LOGLEVEL_INFO,\
++		    "[I] " FORMAT_STR, ##__VA_ARGS__)
++
++#define EVDI_DEBUG(FORMAT_STR, ...) \
++	EVDI_PRINTK(KERN_DEFAULT, EVDI_LOGLEVEL_DEBUG,\
++		    "[D] %s:%d " FORMAT_STR, __func__, __LINE__, ##__VA_ARGS__)
++
++#define EVDI_VERBOSE(FORMAT_STR, ...) \
++	EVDI_PRINTK(KERN_DEFAULT, EVDI_LOGLEVEL_VERBOSE,\
++		    "[V] %s:%d " FORMAT_STR, __func__, __LINE__, ##__VA_ARGS__)
++
++#define EVDI_CHECKPT() EVDI_VERBOSE("\n")
++#define EVDI_ENTER() EVDI_VERBOSE("enter\n")
++#define EVDI_EXIT() EVDI_VERBOSE("exit\n")
++
++void evdi_log_process(char *buf, size_t size);
++
++#endif /* EVDI_DEBUG_H */
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_drm.h b/drivers/staging/lindroid-drm-loopback/evdi_drm.h
+new file mode 100644
+index 000000000000..f33d955d4bab
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_drm.h
+@@ -0,0 +1,214 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
++ *
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#ifndef __UAPI_EVDI_DRM_H__
++#define __UAPI_EVDI_DRM_H__
++
++#ifdef __KERNEL__
++#include <linux/types.h>
++#include <drm/drm.h>
++#else
++#include <stdint.h>
++#endif
++
++/* Output events sent from driver to evdi lib */
++#define DRM_EVDI_EVENT_UPDATE_READY  0x80000000
++#define DRM_EVDI_EVENT_DPMS          0x80000001
++#define DRM_EVDI_EVENT_MODE_CHANGED  0x80000002
++#define DRM_EVDI_EVENT_CRTC_STATE    0x80000003
++#define DRM_EVDI_EVENT_CURSOR_SET    0x80000004
++#define DRM_EVDI_EVENT_CURSOR_MOVE   0x80000005
++
++enum poll_event_type {
++  none,
++  add_buf,
++  get_buf,
++  destroy_buf,
++  swap_to,
++  create_buf
++};
++
++struct drm_evdi_event_update_ready {
++	struct drm_event base;
++};
++
++struct drm_evdi_event_dpms {
++	struct drm_event base;
++	int32_t mode;
++};
++
++struct drm_evdi_event_mode_changed {
++	struct drm_event base;
++	int32_t hdisplay;
++	int32_t vdisplay;
++	int32_t vrefresh;
++	int32_t bits_per_pixel;
++	uint32_t pixel_format;
++};
++
++struct drm_evdi_event_crtc_state {
++	struct drm_event base;
++	int32_t state;
++};
++
++struct drm_evdi_connect {
++	int32_t connected;
++	int32_t dev_index;
++	uint32_t width;
++	uint32_t height;
++	uint32_t refresh_rate;
++};
++
++struct drm_evdi_request_update {
++	int32_t reserved;
++};
++
++enum drm_evdi_grabpix_mode {
++	EVDI_GRABPIX_MODE_RECTS = 0,
++	EVDI_GRABPIX_MODE_DIRTY = 1,
++};
++
++struct drm_evdi_grabpix {
++	enum drm_evdi_grabpix_mode mode;
++	int32_t buf_width;
++	int32_t buf_height;
++	int32_t buf_byte_stride;
++	unsigned char __user *buffer;
++	int32_t num_rects;
++	struct drm_clip_rect __user *rects;
++};
++
++struct drm_evdi_event_cursor_set {
++	struct drm_event base;
++	int32_t hot_x;
++	int32_t hot_y;
++	uint32_t width;
++	uint32_t height;
++	uint8_t enabled;
++	uint32_t buffer_handle;
++	uint32_t buffer_length;
++	uint32_t pixel_format;
++	uint32_t stride;
++};
++
++struct drm_evdi_event_cursor_move {
++	struct drm_event base;
++	int32_t x;
++	int32_t y;
++};
++
++struct drm_evdi_enable_cursor_events {
++	struct drm_event base;
++	uint8_t enable;
++};
++
++struct drm_evdi_poll {
++	enum poll_event_type event;
++	int poll_id;
++	void *data;
++};
++
++struct drm_evdi_add_buff_callabck {
++	int poll_id;
++	int buff_id;
++};
++
++struct drm_evdi_get_buff_callabck {
++	int poll_id;
++	int version;
++	int numFds;
++	int numInts;
++	int *fd_ints;
++	int *data_ints;
++};
++
++struct drm_evdi_destroy_buff_callback {
++	int poll_id;
++};
++
++struct drm_evdi_swap_callabck {
++	int poll_id;
++};
++
++struct drm_evdi_create_buff_callabck {
++	int poll_id;
++	int id;
++	uint32_t stride;
++};
++
++struct drm_evdi_gbm_add_buf {
++	int fd;
++	int id;
++};
++
++struct drm_evdi_gbm_del_buff {
++	int id;
++};
++
++struct drm_evdi_gbm_create_buff {
++	int *id;
++	uint32_t *stride;
++	uint32_t format;
++	uint32_t width;
++	uint32_t height;
++};
++
++struct drm_evdi_gbm_get_buff {
++	int id;
++	struct evdi_gralloc_buf_user *native_handle;
++};
++
++/* Input ioctls from evdi lib to driver */
++#define DRM_EVDI_CONNECT          0x00
++#define DRM_EVDI_REQUEST_UPDATE   0x01
++#define DRM_EVDI_GRABPIX          0x02
++#define DRM_EVDI_ENABLE_CURSOR_EVENTS 0x03
++#define DRM_EVDI_POLL 0x04
++#define DRM_EVDI_GBM_ADD_BUFF 0x05
++#define DRM_EVDI_GBM_GET_BUFF 0x06
++#define DRM_EVDI_ADD_BUFF_CALLBACK 0x07
++#define DRM_EVDI_GET_BUFF_CALLBACK 0x08
++#define DRM_EVDI_DESTROY_BUFF_CALLBACK 0x09
++#define DRM_EVDI_SWAP_CALLBACK 0x0A
++#define DRM_EVDI_GBM_DEL_BUFF 0x0B
++#define DRM_EVDI_GBM_CREATE_BUFF 0x0C
++#define DRM_EVDI_GBM_CREATE_BUFF_CALLBACK 0x0D
++
++/* LAST_IOCTL 0x5F -- 96 driver specific ioctls to use */
++
++#define DRM_IOCTL_EVDI_CONNECT DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_CONNECT, struct drm_evdi_connect)
++#define DRM_IOCTL_EVDI_REQUEST_UPDATE DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_REQUEST_UPDATE, struct drm_evdi_request_update)
++#define DRM_IOCTL_EVDI_GRABPIX DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GRABPIX, struct drm_evdi_grabpix)
++#define DRM_IOCTL_EVDI_ENABLE_CURSOR_EVENTS DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_ENABLE_CURSOR_EVENTS, struct drm_evdi_enable_cursor_events)
++#define DRM_IOCTL_EVDI_POLL DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_POLL, struct drm_evdi_poll)
++#define DRM_IOCTL_EVDI_GBM_ADD_BUFF DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GBM_ADD_BUFF, struct drm_evdi_gbm_add_buf)
++#define DRM_IOCTL_EVDI_GBM_GET_BUFF DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GBM_GET_BUFF, struct drm_evdi_gbm_get_buff)
++#define DRM_IOCTL_EVDI_GBM_DEL_BUFF DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GBM_DEL_BUFF, struct drm_evdi_gbm_del_buff)
++#define DRM_IOCTL_EVDI_GBM_CREATE_BUFF DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GBM_CREATE_BUFF, struct drm_evdi_gbm_create_buff)
++#define DRM_IOCTL_EVDI_GBM_CREATE_BUFF_CALLBACK DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GBM_CREATE_BUFF_CALLBACK, struct drm_evdi_create_buff_callabck)
++#define DRM_IOCTL_EVDI_ADD_BUFF_CALLBACK DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_ADD_BUFF_CALLBACK, struct drm_evdi_add_buff_callabck)
++#define DRM_IOCTL_EVDI_GET_BUFF_CALLBACK DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_GET_BUFF_CALLBACK, struct drm_evdi_get_buff_callabck)
++#define DRM_IOCTL_EVDI_DESTROY_BUFF_CALLBACK DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_DESTROY_BUFF_CALLBACK, struct drm_evdi_destroy_buff_callback)
++#define DRM_IOCTL_EVDI_SWAP_CALLBACK DRM_IOWR(DRM_COMMAND_BASE +  \
++	DRM_EVDI_SWAP_CALLBACK, struct drm_evdi_swap_callabck)
++
++#endif /* __EVDI_UAPI_DRM_H__ */
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_drm_drv.c b/drivers/staging/lindroid-drm-loopback/evdi_drm_drv.c
+new file mode 100644
+index 000000000000..b240b6fd6a14
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_drm_drv.c
+@@ -0,0 +1,800 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * Based on parts on udlfb.c:
++ * Copyright (C) 2009 its respective authors
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/slab.h>
++#include <linux/file.h>
++#include <linux/fdtable.h>
++#include <linux/fs.h>
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_ioctl.h>
++#include <drm/drm_file.h>
++#include <drm/drm_drv.h>
++#include <drm/drm_vblank.h>
++#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
++#else
++#include <drm/drmP.h>
++#endif
++#if KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#include <drm/drm_probe_helper.h>
++#endif
++#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#include <drm/drm_managed.h>
++#endif
++#include <drm/drm_atomic_helper.h>
++#include "evdi_drm_drv.h"
++#include "evdi_platform_drv.h"
++#include "evdi_cursor.h"
++#include "evdi_debug.h"
++#include "evdi_drm.h"
++
++#if KERNEL_VERSION(6, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#define EVDI_DRM_UNLOCKED 0
++#else
++#define EVDI_DRM_UNLOCKED DRM_UNLOCKED
++#endif
++
++static struct drm_driver driver;
++int evdi_swap_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file);
++int evdi_add_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file);
++
++int evdi_destroy_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file);
++
++int evdi_gbm_add_buf_ioctl(
++					struct drm_device *dev,
++					void *data,
++					struct drm_file *file);
++
++int evdi_get_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file);
++
++int evdi_gbm_get_buf_ioctl(struct drm_device *dev, void *data,
++					struct drm_file *file);
++
++int evdi_gbm_del_buf_ioctl(struct drm_device *dev, void *data,
++					struct drm_file *file);
++
++int evdi_gbm_create_buff(struct drm_device *dev, void *data,
++					struct drm_file *file);
++
++int evdi_create_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file);
++
++struct drm_ioctl_desc evdi_painter_ioctls[] = {
++	DRM_IOCTL_DEF_DRV(EVDI_CONNECT, evdi_painter_connect_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_REQUEST_UPDATE, evdi_painter_request_update_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GRABPIX, evdi_painter_grabpix_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_ENABLE_CURSOR_EVENTS, evdi_painter_enable_cursor_events_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_POLL, evdi_poll_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_SWAP_CALLBACK, evdi_swap_callback_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_ADD_BUFF_CALLBACK, evdi_add_buff_callback_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GET_BUFF_CALLBACK, evdi_get_buff_callback_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_DESTROY_BUFF_CALLBACK, evdi_destroy_buff_callback_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GBM_ADD_BUFF, evdi_gbm_add_buf_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GBM_GET_BUFF, evdi_gbm_get_buf_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GBM_DEL_BUFF, evdi_gbm_del_buf_ioctl, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GBM_CREATE_BUFF, evdi_gbm_create_buff, EVDI_DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(EVDI_GBM_CREATE_BUFF_CALLBACK, evdi_create_buff_callback_ioctl, EVDI_DRM_UNLOCKED),
++};
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++static const struct vm_operations_struct evdi_gem_vm_ops = {
++	.fault = evdi_gem_fault,
++	.open = drm_gem_vm_open,
++	.close = drm_gem_vm_close,
++};
++#endif
++
++static const struct file_operations evdi_driver_fops = {
++	.owner = THIS_MODULE,
++	.open = drm_open,
++	.mmap = evdi_drm_gem_mmap,
++	.poll = drm_poll,
++	.read = drm_read,
++	.unlocked_ioctl = drm_ioctl,
++	.release = drm_release,
++
++#ifdef CONFIG_COMPAT
++	.compat_ioctl = evdi_compat_ioctl,
++#endif
++
++	.llseek = noop_llseek,
++
++#if defined(FOP_UNSIGNED_OFFSET)
++	.fop_flags = FOP_UNSIGNED_OFFSET,
++#endif
++};
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++static int evdi_enable_vblank(__always_unused struct drm_device *dev,
++			      __always_unused unsigned int pipe)
++{
++	return 1;
++}
++
++static void evdi_disable_vblank(__always_unused struct drm_device *dev,
++				__always_unused unsigned int pipe)
++{
++}
++#endif
++
++static struct drm_driver driver = {
++#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_ATOMIC,
++#else
++	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_PRIME
++			 | DRIVER_ATOMIC,
++#endif
++
++	.open = evdi_driver_open,
++	.postclose = evdi_driver_postclose,
++
++	/* gem hooks */
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#elif KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
++	.gem_free_object_unlocked = evdi_gem_free_object,
++#else
++	.gem_free_object = evdi_gem_free_object,
++#endif
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	.gem_vm_ops = &evdi_gem_vm_ops,
++#endif
++
++	.dumb_create = evdi_dumb_create,
++	.dumb_map_offset = evdi_gem_mmap,
++#if KERNEL_VERSION(5, 12, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	.dumb_destroy = drm_gem_dumb_destroy,
++#endif
++
++	.ioctls = evdi_painter_ioctls,
++	.num_ioctls = ARRAY_SIZE(evdi_painter_ioctls),
++
++	.fops = &evdi_driver_fops,
++
++	.gem_prime_import = drm_gem_prime_import,
++#if KERNEL_VERSION(6, 6, 0) <= LINUX_VERSION_CODE
++#else
++	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
++	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
++#endif
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	.preclose = evdi_driver_preclose,
++	.gem_prime_export = drm_gem_prime_export,
++	.gem_prime_get_sg_table = evdi_prime_get_sg_table,
++	.enable_vblank = evdi_enable_vblank,
++	.disable_vblank = evdi_disable_vblank,
++#endif
++	.gem_prime_import_sg_table = evdi_prime_import_sg_table,
++
++	.name = DRIVER_NAME,
++	.desc = DRIVER_DESC,
++	.date = DRIVER_DATE,
++	.major = DRIVER_MAJOR,
++	.minor = DRIVER_MINOR,
++	.patchlevel = DRIVER_PATCH,
++};
++
++struct evdi_event *evdi_create_event(struct evdi_device *evdi, enum poll_event_type type, void *data)
++{
++	struct evdi_event *event = kzalloc(sizeof(*event), GFP_KERNEL);
++	if (!event)
++		return NULL;
++
++	event->type = type;
++	event->data = data;
++	init_waitqueue_head(&event->wait);
++	event->completed = false;
++	event->evdi = evdi;
++
++	mutex_lock(&evdi->event_lock);
++
++	event->poll_id = atomic_fetch_inc(&evdi->next_event_id);
++	idr_alloc(&evdi->event_idr, event, event->poll_id, event->poll_id + 1, GFP_KERNEL);
++	list_add_tail(&event->list, &evdi->event_queue);
++
++	mutex_unlock(&evdi->event_lock);
++	return event;
++}
++
++
++int evdi_swap_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_add_buff_callabck *cmd = data;
++	struct evdi_event *event;
++
++	mutex_lock(&evdi->event_lock);
++	event = idr_find(&evdi->event_idr, cmd->poll_id);
++	mutex_unlock(&evdi->event_lock);
++
++	if (!event)
++		return -EINVAL;
++
++	event->result = 0;
++	event->completed = true;
++	wake_up(&event->wait);
++	return 0;
++}
++
++int evdi_add_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_add_buff_callabck *cmd = data;
++	struct evdi_event *event;
++	int *buff_id_ptr;
++
++	mutex_lock(&evdi->event_lock);
++	event = idr_find(&evdi->event_idr, cmd->poll_id);
++	mutex_unlock(&evdi->event_lock);
++
++	if (!event)
++		return -EINVAL;
++
++	buff_id_ptr = kzalloc(sizeof(int), GFP_KERNEL);
++	*buff_id_ptr = cmd->buff_id;
++	event->reply_data = buff_id_ptr;
++	event->result = 0;
++	event->completed = true;
++	wake_up(&event->wait);
++	return 0;
++}
++
++int evdi_get_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                     struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_get_buff_callabck *cmd = data;
++	struct evdi_event *event;
++	struct evdi_gralloc_buf *gralloc_buf;
++	int *fd_ints;
++	int i;
++
++	mutex_lock(&evdi->event_lock);
++	event = idr_find(&evdi->event_idr, cmd->poll_id);
++	mutex_unlock(&evdi->event_lock);
++
++	if (!event)
++		return -EINVAL;
++
++	gralloc_buf = kzalloc(sizeof(struct evdi_gralloc_buf), GFP_KERNEL);
++	gralloc_buf->version = cmd->version;
++	gralloc_buf->numFds = cmd->numFds;
++	gralloc_buf->numInts = cmd->numInts;
++	gralloc_buf->data_ints = kzalloc(sizeof(int)*cmd->numInts, GFP_KERNEL);
++	gralloc_buf->data_files = kzalloc(sizeof(struct file*)*cmd->numFds, GFP_KERNEL);
++
++	copy_from_user(gralloc_buf->data_ints, cmd->data_ints, sizeof(int) * cmd->numInts);
++	fd_ints = kzalloc(sizeof(int)*cmd->numFds, GFP_KERNEL);
++	copy_from_user(fd_ints, cmd->fd_ints, sizeof(int) * cmd->numFds);
++	
++	for (i = 0; i < cmd->numFds; i++) {
++		gralloc_buf->data_files[i] = fget(fd_ints[i]);
++		if (!gralloc_buf->data_files[i]) {
++			printk("evdi_get_buff_callback_ioctl: Failed to open fake fb %d\n", cmd->fd_ints[i]);
++			return -EINVAL;
++		}
++	}
++	event->reply_data = gralloc_buf;
++	event->result = 0;
++	event->completed = true;
++	wake_up(&event->wait);
++	return 0;
++}
++
++int evdi_destroy_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                     struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_add_buff_callabck *cmd = data;
++	struct evdi_event *event;
++	mutex_lock(&evdi->event_lock);
++	event = idr_find(&evdi->event_idr, cmd->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	if (!event) {
++		printk("evdi_destroy_buff_callback_ioctl: event is null\n");
++		return -EINVAL;
++	}
++
++	event->result = 0;
++	event->completed = true;
++	wake_up(&event->wait);
++	return 0;
++}
++
++int evdi_create_buff_callback_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_create_buff_callabck *cmd = data;
++	struct evdi_event *event;
++	struct drm_evdi_create_buff_callabck *buf = kzalloc(sizeof(struct drm_evdi_create_buff_callabck), GFP_KERNEL);
++	memcpy(buf, data, sizeof(struct drm_evdi_create_buff_callabck));
++	mutex_lock(&evdi->event_lock);
++	event = idr_find(&evdi->event_idr, cmd->poll_id);
++	mutex_unlock(&evdi->event_lock);
++
++	if (!event)
++		return -EINVAL;
++
++	event->result = 0;
++	event->completed = true;
++	event->reply_data = buf;
++	wake_up(&event->wait);
++	return 0;
++}
++
++int evdi_gbm_add_buf_ioctl(struct drm_device *dev, void *data,
++					struct drm_file *file)
++{
++	struct file *memfd_file;
++	struct file *fd_file;
++	int ret;
++	int version, numFds, numInts, fd;
++	ssize_t bytes_read;
++	struct evdi_gralloc_buf *add_gralloc_buf;
++	struct evdi_device *evdi = dev->dev_private;
++	struct drm_evdi_gbm_add_buf *cmd = data;
++	struct evdi_event *event;
++	loff_t pos;
++	int i;
++
++	memfd_file = fget(cmd->fd);
++	if (!memfd_file) {
++		printk("Failed to open fake fb: %d\n", cmd->fd);
++		return -EINVAL;
++	}
++
++	pos = 0; /* Initialize offset */
++	bytes_read = kernel_read(memfd_file, &version, sizeof(version), &pos);
++	if (bytes_read != sizeof(version)) {
++		printk("Failed to read version from memfd, bytes_read=%zd\n", bytes_read);
++		return -EIO;
++	}
++
++	bytes_read = kernel_read(memfd_file, &numFds, sizeof(numFds), &pos);
++	if (bytes_read != sizeof(numFds)) {
++		printk("Failed to read numFds from memfd, bytes_read=%zd\n", bytes_read);
++		return -EIO;
++	}
++
++	bytes_read = kernel_read(memfd_file, &numInts, sizeof(numInts), &pos);
++	if (bytes_read != sizeof(numInts)) {
++		printk("Failed to read numInts from memfd, bytes_read=%zd\n", bytes_read);
++		return -EIO;
++	}
++	add_gralloc_buf = kzalloc(sizeof(struct evdi_gralloc_buf), GFP_KERNEL);
++	add_gralloc_buf->numFds = numFds;
++	add_gralloc_buf->numInts = numInts;
++	add_gralloc_buf->data_ints = kzalloc(sizeof(int)*numInts, GFP_KERNEL);
++	add_gralloc_buf->data_files = kzalloc(sizeof(struct file*)*numFds, GFP_KERNEL);
++	add_gralloc_buf->memfd_file = memfd_file;
++
++	for (i = 0; i < numFds; i++) {
++		bytes_read = kernel_read(memfd_file, &fd, sizeof(fd), &pos);
++		if (bytes_read != sizeof(fd)) {
++			printk("Failed to read fd from memfd, bytes_read=%zd\n", bytes_read);
++			return -EIO;
++		}
++		fd_file = fget(fd);
++		if (!fd_file) {
++			printk("Failed to open fake fb's %d fd file: %d\n", cmd->fd, fd);
++			return -EINVAL;
++		}
++		add_gralloc_buf->data_files[i] = fd_file;
++
++	}
++
++	bytes_read = kernel_read(memfd_file, add_gralloc_buf->data_ints, sizeof(int) *numInts, &pos);
++	if (bytes_read != sizeof(int) *numInts) {
++		printk("Failed to read ints from memfd, bytes_read=%zd\n", bytes_read);
++		return -EIO;
++	}
++
++	event = evdi_create_event(evdi, add_buf, add_gralloc_buf);
++	if (!event)
++		return -ENOMEM;
++
++	wake_up(&evdi->poll_ioct_wq);
++	ret = wait_event_interruptible(event->wait, event->completed);
++	if (ret < 0){
++		printk("evdi_gbm_add_buf_ioctl: wait_event_interruptible interrupted: %d\n", ret);
++		return ret;
++	}
++
++	ret = event->result;
++	if (ret < 0) {
++		pr_err("evdi_gbm_add_buf_ioctl: user ioctl failled\n");
++		return ret;
++	}
++
++	if (ret)
++		goto err_inval;
++	cmd->id = *((int *)event->reply_data);
++	mutex_lock(&evdi->event_lock);
++	idr_remove(&evdi->event_idr, event->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	kfree(event);
++	return 0;
++
++ /* err_no_mem: removed unused label */
++ err_inval:
++	return -EINVAL;
++}
++
++int evdi_gbm_get_buf_ioctl(struct drm_device *dev, void *data,
++					struct drm_file *file)
++{
++	struct drm_evdi_gbm_get_buff *cmd = data;
++	struct evdi_gralloc_buf_user *gralloc_buf = kzalloc(sizeof(struct evdi_gralloc_buf_user), GFP_KERNEL);
++	struct evdi_gralloc_buf *gralloc_buf_tmp;
++	struct evdi_device *evdi = dev->dev_private;
++	int fd_tmp, ret;
++	struct evdi_event *event;
++	int i;
++
++	event = evdi_create_event(evdi, get_buf, &cmd->id);
++	if (!event)
++		return -ENOMEM;
++
++	wake_up(&evdi->poll_ioct_wq);
++	ret = wait_event_interruptible(event->wait, event->completed);
++	if (ret < 0) {
++		printk("evdi_gbm_get_buf_ioctl: wait_event_interruptible interrupted: %d\n", ret);
++		return ret;
++	}
++
++	ret = event->result;
++	if (ret < 0) {
++		pr_err("evdi_gbm_get_buf_ioctl: user ioctl failled\n");
++		return ret;
++	}
++
++	gralloc_buf_tmp = event->reply_data;
++	gralloc_buf->version = gralloc_buf_tmp->version;
++	gralloc_buf->numFds = gralloc_buf_tmp->numFds;
++	gralloc_buf->numInts = gralloc_buf_tmp->numInts;
++	memcpy(&gralloc_buf->data[gralloc_buf->numFds], gralloc_buf_tmp->data_ints, sizeof(int)*gralloc_buf->numInts);
++
++	for (i = 0; i < gralloc_buf->numFds; i++) {
++		fd_tmp = get_unused_fd_flags(O_RDWR);
++		fd_install(fd_tmp, gralloc_buf_tmp->data_files[i]);
++		gralloc_buf->data[i] = fd_tmp;
++	}
++
++	if (copy_to_user(cmd->native_handle, gralloc_buf, sizeof(int)*(3 + gralloc_buf->numFds + gralloc_buf->numInts))) {
++		pr_err("Failed to copy file descriptor to userspace\n");
++		kfree(gralloc_buf);
++		return -EFAULT;
++	}
++
++	kfree(gralloc_buf);
++	mutex_lock(&evdi->event_lock);
++	idr_remove(&evdi->event_idr, event->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	kfree(event);
++
++	return 0;
++}
++
++int evdi_gbm_del_buf_ioctl(struct drm_device *dev, void *data,
++					struct drm_file *file)
++{
++	struct drm_evdi_gbm_del_buff *cmd = data;
++	struct evdi_device *evdi = dev->dev_private;
++	int ret;
++	struct evdi_event *event;
++
++	event = evdi_create_event(evdi, destroy_buf, &cmd->id);
++	if (!event)
++		return -ENOMEM;
++
++	wake_up(&evdi->poll_ioct_wq);
++	ret = wait_event_interruptible(event->wait, event->completed);
++	if (ret < 0) {
++		printk("evdi_gbm_get_buf_ioctl: wait_event_interruptible interrupted: %d\n", ret);
++		return ret;
++	}
++
++	ret = event->result;
++	if (ret < 0) {
++		pr_err("evdi_gbm_get_buf_ioctl: user ioctl failled\n");
++		return ret;
++	}
++
++	mutex_lock(&evdi->event_lock);
++	idr_remove(&evdi->event_idr, event->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	kfree(event);
++
++	return 0;
++}
++
++int evdi_gbm_create_buff (struct drm_device *dev, void *data,
++					struct drm_file *file)
++{
++	struct drm_evdi_gbm_create_buff *cmd = data;
++	struct evdi_device *evdi = dev->dev_private;
++	struct drm_evdi_create_buff_callabck *cb_cmd;
++	int ret;
++	struct evdi_event *event = evdi_create_event(evdi, create_buf, cmd);
++	if (!event)
++		return -ENOMEM;
++
++	wake_up(&evdi->poll_ioct_wq);
++	ret = wait_event_interruptible(event->wait, event->completed);
++	if (ret < 0) {
++		printk("evdi_gbm_create_buff: wait_event_interruptible interrupted: %d\n", ret);
++		return ret;
++	}
++
++	ret = event->result;
++	if (ret < 0) {
++		pr_err("evdi_gbm_create_buff: user ioctl failled\n");
++		return ret;
++	}
++
++	cb_cmd = (struct drm_evdi_create_buff_callabck *)event->reply_data;
++	copy_to_user(cmd->id, &cb_cmd->id, sizeof(int));
++	copy_to_user(cmd->stride, &cb_cmd->stride, sizeof(int));
++	mutex_lock(&evdi->event_lock);
++	idr_remove(&evdi->event_idr, event->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	kfree(event);
++
++	return 0;
++}
++
++int evdi_poll_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_poll *cmd = data;
++	struct evdi_event *event;
++	int fd, fd_tmp, ret;
++	ssize_t bytes_write;
++	loff_t pos;
++	int i;
++
++	EVDI_CHECKPT();
++
++	if (!evdi) {
++		pr_err("evdi is null\n");
++		return -ENODEV;
++	}
++
++	ret = wait_event_interruptible(evdi->poll_ioct_wq,
++		!list_empty(&evdi->event_queue));
++
++	if (ret < 0) {
++		pr_err("evdi_poll_ioctl: Wait interrupted by signal\n");
++		return ret;
++	}
++
++	mutex_lock(&evdi->event_lock);
++
++	if (list_empty(&evdi->event_queue)) {
++		mutex_unlock(&evdi->event_lock);
++		return -EAGAIN;
++	}
++
++	event = list_first_entry(&evdi->event_queue, struct evdi_event, list);
++	list_del(&event->list);
++
++	mutex_unlock(&evdi->event_lock);
++
++	cmd->event = event->type;
++	cmd->poll_id = event->poll_id;
++
++	switch(cmd->event) {
++		case add_buf:
++			{
++			struct evdi_gralloc_buf *add_gralloc_buf = event->data;
++			fd = get_unused_fd_flags(O_RDWR);
++			if (fd < 0) {
++				pr_err("Failed to allocate file descriptor\n");
++				return fd;
++			}
++
++			fd_install(fd, add_gralloc_buf->memfd_file);
++
++			for (i = 0; i < add_gralloc_buf->numFds; i++) {
++				fd_tmp = get_unused_fd_flags(O_RDWR);
++				fd_install(fd_tmp, add_gralloc_buf->data_files[i]);
++				pos = sizeof(int) * (3 + i);
++				bytes_write = kernel_write(add_gralloc_buf->memfd_file, &fd_tmp, sizeof(fd_tmp), &pos);
++				if (bytes_write != sizeof(fd_tmp)) {
++					pr_err("Failed to write fd\n");
++					put_unused_fd(fd);
++					return -EFAULT;
++				}
++			}
++
++			if (copy_to_user(cmd->data, &fd, sizeof(fd))) {
++				pr_err("Failed to copy file descriptor to userspace\n");
++				put_unused_fd(fd);
++				return -EFAULT;
++			}
++			break;
++			}
++		case create_buf:
++			copy_to_user(cmd->data, event->data, sizeof(struct drm_evdi_gbm_create_buff));
++			break;
++		case get_buf:
++		case swap_to:
++		case destroy_buf:
++			copy_to_user(cmd->data, event->data, sizeof(int));
++			break;
++		default:
++			pr_err("unknown event: %d\n", cmd->event);
++	}
++
++	return 0;
++}
++
++static void evdi_drm_device_release_cb(__always_unused struct drm_device *dev,
++				       __always_unused void *ptr)
++{
++	struct evdi_device *evdi = dev->dev_private;
++
++	evdi_cursor_free(evdi->cursor);
++	evdi_painter_cleanup(evdi->painter);
++	kfree(evdi);
++	dev->dev_private = NULL;
++	EVDI_INFO("Evdi drm_device removed.\n");
++
++	EVDI_TEST_HOOK(evdi_testhook_drm_device_destroyed());
++}
++
++static int evdi_drm_device_init(struct drm_device *dev)
++{
++	struct evdi_device *evdi;
++	int ret;
++
++	EVDI_CHECKPT();
++	evdi = kzalloc(sizeof(struct evdi_device), GFP_KERNEL);
++	if (!evdi)
++		return -ENOMEM;
++
++	evdi->ddev = dev;
++	evdi->dev_index = dev->primary->index;
++	evdi->cursor_events_enabled = false;
++	dev->dev_private = evdi;
++	evdi->poll_event = none;
++	init_waitqueue_head (&evdi->poll_ioct_wq);
++	init_waitqueue_head (&evdi->poll_response_ioct_wq);
++	mutex_init(&evdi->poll_lock);
++	init_completion(&evdi->poll_completion);
++	evdi->poll_data_size = -1;
++
++	mutex_init(&evdi->event_lock);
++	INIT_LIST_HEAD(&evdi->event_queue);
++	idr_init(&evdi->event_idr);
++	atomic_set(&evdi->next_event_id, 1);
++
++	ret = evdi_painter_init(evdi);
++	if (ret)
++		goto err_free;
++	ret =  evdi_cursor_init(&evdi->cursor);
++	if (ret)
++		goto err_free;
++
++	evdi_modeset_init(dev);
++
++	ret = drm_vblank_init(dev, 1);
++	if (ret)
++		goto err_init;
++	drm_kms_helper_poll_init(dev);
++
++#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	ret = drmm_add_action_or_reset(dev, evdi_drm_device_release_cb, NULL);
++	if (ret)
++		goto err_init;
++#endif
++
++	return 0;
++
++err_init:
++err_free:
++	EVDI_ERROR("Failed to setup drm device %d\n", ret);
++	evdi_cursor_free(evdi->cursor);
++	kfree(evdi->painter);
++	kfree(evdi);
++	dev->dev_private = NULL;
++	return ret;
++}
++
++int evdi_driver_open(struct drm_device *dev, __always_unused struct drm_file *file)
++{
++	char buf[100];
++
++	evdi_log_process(buf, sizeof(buf));
++	EVDI_INFO("(card%d) Opened by %s\n", dev->primary->index, buf);
++	return 0;
++}
++
++static void evdi_driver_close(struct drm_device *drm_dev, struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++
++	EVDI_CHECKPT();
++	if (evdi)
++		evdi_painter_close(evdi, file);
++}
++
++void evdi_driver_preclose(struct drm_device *drm_dev, struct drm_file *file)
++{
++	evdi_driver_close(drm_dev, file);
++}
++
++void evdi_driver_postclose(struct drm_device *dev, struct drm_file *file)
++{
++	char buf[100];
++
++	evdi_log_process(buf, sizeof(buf));
++	evdi_driver_close(dev, file);
++	EVDI_INFO("(card%d) Closed by %s\n", dev->primary->index, buf);
++}
++
++struct drm_device *evdi_drm_device_create(struct device *parent)
++{
++	struct drm_device *dev = NULL;
++	int ret;
++
++	dev = drm_dev_alloc(&driver, parent);
++	if (IS_ERR(dev))
++		return dev;
++
++	ret = evdi_drm_device_init(dev);
++	if (ret)
++		goto err_free;
++
++	ret = drm_dev_register(dev, 0);
++	if (ret)
++		goto err_free;
++
++	return dev;
++
++err_free:
++	drm_dev_put(dev);
++	return ERR_PTR(ret);
++}
++
++static void evdi_drm_device_deinit(struct drm_device *dev)
++{
++	drm_kms_helper_poll_fini(dev);
++	evdi_modeset_cleanup(dev);
++	drm_atomic_helper_shutdown(dev);
++}
++
++int evdi_drm_device_remove(struct drm_device *dev)
++{
++	drm_dev_unplug(dev);
++	evdi_drm_device_deinit(dev);
++#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	evdi_drm_device_release_cb(dev, NULL);
++#endif
++	drm_dev_put(dev);
++	return 0;
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_drm_drv.h b/drivers/staging/lindroid-drm-loopback/evdi_drm_drv.h
+new file mode 100644
+index 000000000000..b7fe91ab398b
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_drm_drv.h
+@@ -0,0 +1,256 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * Based on parts on udlfb.c:
++ * Copyright (C) 2009 its respective authors
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#ifndef EVDI_DRV_H
++#define EVDI_DRV_H
++
++#include <linux/module.h>
++#include <linux/version.h>
++#include <linux/mutex.h>
++#include <linux/device.h>
++#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_drv.h>
++#include <drm/drm_fourcc.h>
++#include <drm/drm_ioctl.h>
++#include <drm/drm_vblank.h>
++#else
++#include <drm/drmP.h>
++#endif
++#if KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_framebuffer.h>
++#else
++#include <drm/drm_irq.h>
++#endif
++#include <drm/drm_crtc.h>
++#include <drm/drm_crtc_helper.h>
++#include <drm/drm_rect.h>
++#include <drm/drm_gem.h>
++#include <drm/drm_framebuffer.h>
++
++#include "evdi_debug.h"
++#include "evdi_drm.h"
++
++struct evdi_fbdev;
++struct evdi_painter;
++
++struct evdi_device {
++	struct drm_device *ddev;
++	struct drm_connector *conn;
++	struct evdi_cursor *cursor;
++	bool cursor_events_enabled;
++
++	uint32_t pixel_area_limit;
++	uint32_t pixel_per_second_limit;
++
++	struct evdi_fbdev *fbdev;
++	struct evdi_painter *painter;
++
++	int dev_index;
++	enum poll_event_type poll_event;
++	void *poll_data;
++	int poll_data_size;
++	wait_queue_head_t poll_ioct_wq;
++	wait_queue_head_t poll_response_ioct_wq;
++	struct mutex poll_lock;
++	struct completion poll_completion;
++	int last_buf_add_id;
++	void *last_got_buff;
++	struct mutex event_lock;
++	struct list_head event_queue;
++	struct idr event_idr;
++	atomic_t next_event_id;
++};
++
++struct evdi_event {
++	enum poll_event_type type;
++	void *data;
++	void *reply_data;
++	int poll_id;
++	wait_queue_head_t wait;
++	bool completed;
++	int result;
++
++	struct list_head list;
++	struct evdi_device *evdi;
++};
++
++struct evdi_gem_object {
++	struct drm_gem_object base;
++	struct page **pages;
++	unsigned int pages_pin_count;
++	struct mutex pages_lock;
++	void *vmapping;
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	bool vmap_is_iomem;
++#endif
++	struct sg_table *sg;
++	bool allow_sw_cursor_rect_updates;
++};
++
++#define to_evdi_bo(x) container_of(x, struct evdi_gem_object, base)
++
++struct evdi_framebuffer {
++	struct drm_framebuffer base;
++	struct evdi_gem_object *obj;
++	bool active;
++	int gralloc_buf_id;
++};
++
++#define MAX_DIRTS 16
++
++struct evdi_painter {
++	bool is_connected;
++	uint32_t width;
++	uint32_t height;
++	uint32_t refresh_rate;
++
++	struct mutex lock;
++	struct drm_clip_rect dirty_rects[MAX_DIRTS];
++	int num_dirts;
++	struct evdi_framebuffer *scanout_fb;
++
++	struct drm_file *drm_filp;
++	struct drm_device *drm_device;
++
++	bool was_update_requested;
++	bool needs_full_modeset;
++	struct drm_crtc *crtc;
++	struct drm_pending_vblank_event *vblank;
++
++	struct list_head pending_events;
++	struct delayed_work send_events_work;
++
++	struct notifier_block vt_notifier;
++	int fg_console;
++};
++
++struct evdi_gralloc_buf {
++	int version;
++	int numFds;
++	int numInts;
++	struct file **data_files;
++	int *data_ints;
++	struct file *memfd_file;
++};
++
++struct evdi_gralloc_buf_user {
++	int version;
++	int numFds;
++	int numInts;
++	int data[128];
++};
++
++#define to_evdi_fb(x) container_of(x, struct evdi_framebuffer, base)
++
++
++struct evdi_event *evdi_create_event(struct evdi_device *evdi, enum poll_event_type type, void *data);
++
++int evdi_poll_ioctl(struct drm_device *drm_dev, void *data,
++                    struct drm_file *file);
++
++/* modeset */
++void evdi_modeset_init(struct drm_device *dev);
++void evdi_modeset_cleanup(struct drm_device *dev);
++int evdi_connector_init(struct drm_device *dev, struct drm_encoder *encoder);
++
++struct drm_encoder *evdi_encoder_init(struct drm_device *dev);
++
++int evdi_driver_open(struct drm_device *drm_dev, struct drm_file *file);
++void evdi_driver_preclose(struct drm_device *dev, struct drm_file *file_priv);
++void evdi_driver_postclose(struct drm_device *dev, struct drm_file *file_priv);
++
++#ifdef CONFIG_COMPAT
++long evdi_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
++#endif
++
++struct drm_framebuffer *evdi_fb_user_fb_create(
++				struct drm_device *dev,
++				struct drm_file *file,
++				const struct drm_mode_fb_cmd2 *mode_cmd);
++int evdi_gem_create(struct drm_file *file,
++		struct drm_device *dev, uint64_t size, uint32_t *handle_p);
++int evdi_dumb_create(struct drm_file *file_priv,
++		     struct drm_device *dev, struct drm_mode_create_dumb *args);
++int evdi_gem_mmap(struct drm_file *file_priv,
++		  struct drm_device *dev, uint32_t handle, uint64_t *offset);
++
++void evdi_gem_free_object(struct drm_gem_object *gem_obj);
++struct evdi_gem_object *evdi_gem_alloc_object(struct drm_device *dev,
++					      size_t size);
++uint32_t evdi_gem_object_handle_lookup(struct drm_file *filp,
++				      struct drm_gem_object *obj);
++
++struct sg_table *evdi_prime_get_sg_table(struct drm_gem_object *obj);
++struct drm_gem_object *
++evdi_prime_import_sg_table(struct drm_device *dev,
++			   struct dma_buf_attachment *attach,
++			   struct sg_table *sg);
++
++int evdi_gem_vmap(struct evdi_gem_object *obj);
++void evdi_gem_vunmap(struct evdi_gem_object *obj);
++int evdi_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma);
++
++#if KERNEL_VERSION(4, 17, 0) <= LINUX_VERSION_CODE
++vm_fault_t evdi_gem_fault(struct vm_fault *vmf);
++#else
++int evdi_gem_fault(struct vm_fault *vmf);
++#endif
++
++bool evdi_painter_is_connected(struct evdi_painter *painter);
++void evdi_painter_close(struct evdi_device *evdi, struct drm_file *file);
++int evdi_painter_get_num_dirts(struct evdi_painter *painter);
++void evdi_painter_mark_dirty(struct evdi_device *evdi,
++			     const struct drm_clip_rect *rect);
++void evdi_painter_send_vblank(struct evdi_painter *painter);
++void evdi_painter_set_vblank(struct evdi_painter *painter,
++			     struct drm_crtc *crtc,
++			     struct drm_pending_vblank_event *vblank);
++void evdi_painter_send_update_ready_if_needed(struct evdi_painter *painter);
++void evdi_painter_dpms_notify(struct evdi_painter *painter, int mode);
++void evdi_painter_mode_changed_notify(struct evdi_device *evdi,
++				      struct drm_display_mode *mode);
++unsigned int evdi_painter_poll(struct file *filp,
++			       struct poll_table_struct *wait);
++
++int evdi_painter_status_ioctl(struct drm_device *drm_dev, void *data,
++			      struct drm_file *file);
++int evdi_painter_connect_ioctl(struct drm_device *drm_dev, void *data,
++			       struct drm_file *file);
++int evdi_painter_grabpix_ioctl(struct drm_device *drm_dev, void *data,
++			       struct drm_file *file);
++int evdi_painter_request_update_ioctl(struct drm_device *drm_dev, void *data,
++				      struct drm_file *file);
++int evdi_painter_enable_cursor_events_ioctl(struct drm_device *drm_dev, void *data,
++					  struct drm_file *file);
++
++int evdi_painter_init(struct evdi_device *evdi);
++void evdi_painter_cleanup(struct evdi_painter *painter);
++void evdi_painter_set_scanout_buffer(struct evdi_painter *painter,
++				     struct evdi_framebuffer *buffer);
++
++struct drm_clip_rect evdi_framebuffer_sanitize_rect(
++			const struct evdi_framebuffer *fb,
++			const struct drm_clip_rect *rect);
++
++struct drm_device *evdi_drm_device_create(struct device *parent);
++int evdi_drm_device_remove(struct drm_device *dev);
++
++void evdi_painter_send_cursor_set(struct evdi_painter *painter,
++				  struct evdi_cursor *cursor);
++void evdi_painter_send_cursor_move(struct evdi_painter *painter,
++				   struct evdi_cursor *cursor);
++bool evdi_painter_needs_full_modeset(struct evdi_painter *painter);
++void evdi_painter_force_full_modeset(struct evdi_painter *painter);
++struct drm_clip_rect evdi_painter_framebuffer_size(struct evdi_painter *painter);
++
++int evdi_fb_get_bpp(uint32_t format);
++#endif
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_encoder.c b/drivers/staging/lindroid-drm-loopback/evdi_encoder.c
+new file mode 100644
+index 000000000000..47fd19f29025
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_encoder.c
+@@ -0,0 +1,74 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * Based on parts on udlfb.c:
++ * Copyright (C) 2009 its respective authors
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++#include <drm/drmP.h>
++#endif
++#include <drm/drm_crtc.h>
++#include <drm/drm_crtc_helper.h>
++#include <drm/drm_encoder.h>
++#include <drm/drm_modeset_helper_vtables.h>
++#include "evdi_drm_drv.h"
++
++/* dummy encoder */
++static void evdi_enc_destroy(struct drm_encoder *encoder)
++{
++	drm_encoder_cleanup(encoder);
++	kfree(encoder);
++}
++
++static void evdi_encoder_enable(__always_unused struct drm_encoder *encoder)
++{
++}
++
++static void evdi_encoder_disable(__always_unused struct drm_encoder *encoder)
++{
++}
++
++static const struct drm_encoder_helper_funcs evdi_enc_helper_funcs = {
++	.enable = evdi_encoder_enable,
++	.disable = evdi_encoder_disable
++};
++
++static const struct drm_encoder_funcs evdi_enc_funcs = {
++	.destroy = evdi_enc_destroy,
++};
++
++struct drm_encoder *evdi_encoder_init(struct drm_device *dev)
++{
++	struct drm_encoder *encoder;
++	int ret = 0;
++
++	encoder = kzalloc(sizeof(struct drm_encoder), GFP_KERNEL);
++	if (!encoder)
++		goto err;
++
++	ret = drm_encoder_init(dev, encoder, &evdi_enc_funcs,
++			       DRM_MODE_ENCODER_TMDS, "%s", dev_name(dev->dev));
++	if (ret) {
++		EVDI_ERROR("Failed to initialize encoder: %d\n", ret);
++		goto err_encoder;
++	}
++
++	drm_encoder_helper_add(encoder, &evdi_enc_helper_funcs);
++
++	encoder->possible_crtcs = 1;
++	return encoder;
++
++err_encoder:
++	kfree(encoder);
++err:
++	return NULL;
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_fb.c b/drivers/staging/lindroid-drm-loopback/evdi_fb.c
+new file mode 100644
+index 000000000000..b592f5606a96
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_fb.c
+@@ -0,0 +1,322 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * Based on parts on udlfb.c:
++ * Copyright (C) 2009 its respective authors
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/slab.h>
++#include <linux/dma-buf.h>
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++#include <drm/drmP.h>
++#endif
++#include <drm/drm_crtc.h>
++#include <drm/drm_crtc_helper.h>
++#include <drm/drm_fb_helper.h>
++#include <drm/drm_atomic.h>
++#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#include <drm/drm_damage_helper.h>
++#endif
++#include "evdi_drm_drv.h"
++
++
++struct evdi_fbdev {
++	struct drm_fb_helper helper;
++	struct evdi_framebuffer efb;
++	struct list_head fbdev_list;
++	const struct fb_ops *fb_ops;
++	int fb_count;
++};
++
++struct drm_clip_rect evdi_framebuffer_sanitize_rect(
++				const struct evdi_framebuffer *fb,
++				const struct drm_clip_rect *dirty_rect)
++{
++	struct drm_clip_rect rect = *dirty_rect;
++
++	if (rect.x1 > rect.x2) {
++		unsigned short tmp = rect.x2;
++
++		EVDI_WARN("Wrong clip rect: x1 > x2\n");
++		rect.x2 = rect.x1;
++		rect.x1 = tmp;
++	}
++
++	if (rect.y1 > rect.y2) {
++		unsigned short tmp = rect.y2;
++
++		EVDI_WARN("Wrong clip rect: y1 > y2\n");
++		rect.y2 = rect.y1;
++		rect.y1 = tmp;
++	}
++
++
++	if (rect.x1 > fb->base.width) {
++		EVDI_DEBUG("Wrong clip rect: x1 > fb.width\n");
++		rect.x1 = fb->base.width;
++	}
++
++	if (rect.y1 > fb->base.height) {
++		EVDI_DEBUG("Wrong clip rect: y1 > fb.height\n");
++		rect.y1 = fb->base.height;
++	}
++
++	if (rect.x2 > fb->base.width) {
++		EVDI_DEBUG("Wrong clip rect: x2 > fb.width\n");
++		rect.x2 = fb->base.width;
++	}
++
++	if (rect.y2 > fb->base.height) {
++		EVDI_DEBUG("Wrong clip rect: y2 > fb.height\n");
++		rect.y2 = fb->base.height;
++	}
++
++	return rect;
++}
++
++#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++/*
++ * Function taken from
++ * https://lore.kernel.org/dri-devel/20180905233901.2321-5-drawat@vmware.com/
++ */
++static int evdi_user_framebuffer_dirty(
++		struct drm_framebuffer *fb,
++		__maybe_unused struct drm_file *file_priv,
++		__always_unused unsigned int flags,
++		__always_unused unsigned int color,
++		__always_unused struct drm_clip_rect *clips,
++		__always_unused unsigned int num_clips)
++{
++	struct evdi_framebuffer *efb = to_evdi_fb(fb);
++	struct drm_device *dev = efb->base.dev;
++	struct evdi_device *evdi = dev->dev_private;
++
++	struct drm_modeset_acquire_ctx ctx;
++	struct drm_atomic_state *state;
++	struct drm_plane *plane;
++	int ret = 0;
++	unsigned int i;
++
++	EVDI_CHECKPT();
++
++	drm_modeset_acquire_init(&ctx,
++		/*
++		 * When called from ioctl, we are interruptable,
++		 * but not when called internally (ie. defio worker)
++		 */
++		file_priv ? DRM_MODESET_ACQUIRE_INTERRUPTIBLE :	0);
++
++	state = drm_atomic_state_alloc(fb->dev);
++	if (!state) {
++		ret = -ENOMEM;
++		goto out;
++	}
++	state->acquire_ctx = &ctx;
++
++	for (i = 0; i < num_clips; ++i)
++		evdi_painter_mark_dirty(evdi, &clips[i]);
++
++retry:
++
++	drm_for_each_plane(plane, fb->dev) {
++		struct drm_plane_state *plane_state;
++
++		if (plane->state->fb != fb)
++			continue;
++
++		/*
++		 * Even if it says 'get state' this function will create and
++		 * initialize state if it does not exists. We use this property
++		 * to force create state.
++		 */
++		plane_state = drm_atomic_get_plane_state(state, plane);
++		if (IS_ERR(plane_state)) {
++			ret = PTR_ERR(plane_state);
++			goto out;
++		}
++	}
++
++	ret = drm_atomic_commit(state);
++
++out:
++	if (ret == -EDEADLK) {
++		drm_atomic_state_clear(state);
++		ret = drm_modeset_backoff(&ctx);
++		if (!ret)
++			goto retry;
++	}
++
++	if (state)
++		drm_atomic_state_put(state);
++
++	drm_modeset_drop_locks(&ctx);
++	drm_modeset_acquire_fini(&ctx);
++
++	return ret;
++}
++#endif
++
++static int evdi_user_framebuffer_create_handle(struct drm_framebuffer *fb,
++					       struct drm_file *file_priv,
++					       unsigned int *handle)
++{
++	struct evdi_framebuffer *efb = to_evdi_fb(fb);
++
++	return drm_gem_handle_create(file_priv, &efb->obj->base, handle);
++}
++
++static void evdi_user_framebuffer_destroy(struct drm_framebuffer *fb)
++{
++	struct evdi_framebuffer *efb = to_evdi_fb(fb);
++	struct drm_device *dev = efb->base.dev;
++	struct evdi_device *evdi = dev->dev_private;
++	struct evdi_event *event;
++	int ret;
++	
++	EVDI_CHECKPT();
++	if (efb->obj)
++#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
++		drm_gem_object_put(&efb->obj->base);
++#else
++		drm_gem_object_put_unlocked(&efb->obj->base);
++#endif
++	drm_framebuffer_cleanup(fb);
++
++	event = evdi_create_event(evdi, destroy_buf, &efb->gralloc_buf_id);
++	if (!event)
++		return;
++
++	wake_up(&evdi->poll_ioct_wq);
++	ret = wait_event_interruptible(event->wait, event->completed);
++	if (ret < 0) {
++		printk("evdi_gbm_add_buf_ioctl: wait_event_interruptible interrupted: %d\n", ret);
++		return;
++	}
++
++	ret = event->result;
++	if (ret < 0) {
++		pr_err("evdi_gbm_add_buf_ioctl: user ioctl failled\n");
++		return;
++	}
++
++	mutex_lock(&evdi->event_lock);
++	idr_remove(&evdi->event_idr, event->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	kfree(event);
++
++	kfree(efb);
++}
++
++	int evdi_atomic_helper_dirtyfb(struct drm_framebuffer *framebuffer,
++		     struct drm_file *file_priv, unsigned flags,
++		     unsigned color, struct drm_clip_rect *clips,
++		     unsigned num_clips){
++				 return 0;
++			}
++
++static const struct drm_framebuffer_funcs evdifb_funcs = {
++	.create_handle = evdi_user_framebuffer_create_handle,
++	.destroy = evdi_user_framebuffer_destroy,
++#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	.dirty = evdi_atomic_helper_dirtyfb,
++#else
++	.dirty = evdi_user_framebuffer_dirty,
++#endif
++};
++
++static int
++evdi_framebuffer_init(struct drm_device *dev,
++		      struct evdi_framebuffer *efb,
++		      const struct drm_mode_fb_cmd2 *mode_cmd,
++		      struct evdi_gem_object *obj)
++{
++	efb->obj = obj;
++	drm_helper_mode_fill_fb_struct(dev, &efb->base, mode_cmd);
++	return drm_framebuffer_init(dev, &efb->base, &evdifb_funcs);
++}
++
++int evdi_fb_get_bpp(uint32_t format)
++{
++	const struct drm_format_info *info = drm_format_info(format);
++
++	if (!info)
++		return 0;
++	return info->cpp[0] * 8;
++}
++
++struct drm_framebuffer *evdi_fb_user_fb_create(
++					struct drm_device *dev,
++					struct drm_file *file,
++					const struct drm_mode_fb_cmd2 *mode_cmd)
++{
++	struct drm_gem_object *obj;
++	struct evdi_framebuffer *efb;
++	int ret;
++	uint32_t size;
++	int bpp = evdi_fb_get_bpp(mode_cmd->pixel_format);
++	uint32_t handle;
++	ssize_t bytes_read;
++	struct file *memfd_file;
++	int id;
++	loff_t pos;
++
++	size = mode_cmd->offsets[0] + mode_cmd->pitches[0] * mode_cmd->height;
++	size = ALIGN(size, PAGE_SIZE);
++
++	if (bpp != 32) {
++		EVDI_ERROR("Unsupported bpp (%d)\n", bpp);
++		return ERR_PTR(-EINVAL);
++	}
++
++	evdi_gem_create(file, dev, size, &handle);
++	obj = drm_gem_object_lookup(file, handle);
++	if (obj == NULL)
++		return ERR_PTR(-ENOENT);
++	if (size > obj->size) {
++		DRM_ERROR("object size not sufficient for fb %d %zu %u %d %d\n",
++			  size, obj->size, mode_cmd->offsets[0],
++			  mode_cmd->pitches[0], mode_cmd->height);
++		goto err_no_mem;
++	}
++	efb = kzalloc(sizeof(*efb), GFP_KERNEL);
++	if (efb == NULL)
++		goto err_no_mem;
++	efb->base.obj[0] = obj;
++
++	memfd_file = fget(mode_cmd->handles[0]);
++	if (!memfd_file) {
++		printk("Failed to open fake fb: %d\n", mode_cmd->handles[0]);
++		return ERR_PTR(-EINVAL);
++	}
++
++	pos = 0;
++	bytes_read = kernel_read(memfd_file, &id, sizeof(id), &pos);
++	if (bytes_read != sizeof(id)) {
++		printk("Failed to read id from memfd, bytes_read=%zd\n", bytes_read);
++		return ERR_PTR(-EIO);
++	}
++
++	efb->gralloc_buf_id = id;
++	ret = evdi_framebuffer_init(dev, efb, mode_cmd, to_evdi_bo(obj));
++
++	if (ret)
++		goto err_inval;
++	return &efb->base;
++
++ err_no_mem:
++	drm_gem_object_put(obj);
++	return ERR_PTR(-ENOMEM);
++ err_inval:
++	kfree(efb);
++	drm_gem_object_put(obj);
++	return ERR_PTR(-EINVAL);
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_gem.c b/drivers/staging/lindroid-drm-loopback/evdi_gem.c
+new file mode 100644
+index 000000000000..cef68daf8b83
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_gem.c
+@@ -0,0 +1,497 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/sched.h>
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
++#include <linux/dma-buf-map.h>
++#endif
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_prime.h>
++#include <drm/drm_file.h>
++#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
++#else
++#include <drm/drmP.h>
++#endif
++#include "evdi_drm_drv.h"
++#include "evdi_params.h"
++#include <linux/shmem_fs.h>
++#include <linux/dma-buf.h>
++#include <drm/drm_cache.h>
++#include <linux/vmalloc.h>
++
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL9)
++MODULE_IMPORT_NS("DMA_BUF");
++#endif
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++static int evdi_prime_pin(struct drm_gem_object *obj);
++static void evdi_prime_unpin(struct drm_gem_object *obj);
++
++static const struct vm_operations_struct evdi_gem_vm_ops = {
++	.fault = evdi_gem_fault,
++	.open = drm_gem_vm_open,
++	.close = drm_gem_vm_close,
++};
++
++static struct drm_gem_object_funcs gem_obj_funcs = {
++	.free = evdi_gem_free_object,
++	.pin = evdi_prime_pin,
++	.unpin = evdi_prime_unpin,
++	.vm_ops = &evdi_gem_vm_ops,
++	.export = drm_gem_prime_export,
++	.get_sg_table = evdi_prime_get_sg_table,
++};
++#endif
++
++static bool evdi_was_called_by_mutter(void)
++{
++	char task_comm[TASK_COMM_LEN] = { 0 };
++
++	get_task_comm(task_comm, current);
++
++	return strcmp(task_comm, "gnome-shell") == 0;
++}
++
++static bool evdi_drm_gem_object_use_import_attach(struct drm_gem_object *obj)
++{
++	if (!obj || !obj->import_attach || !obj->import_attach->dmabuf->owner)
++		return false;
++
++	return strcmp(obj->import_attach->dmabuf->owner->name, "amdgpu") != 0;
++}
++
++uint32_t evdi_gem_object_handle_lookup(struct drm_file *filp,
++				       struct drm_gem_object *obj)
++{
++	uint32_t it_handle = 0;
++	struct drm_gem_object *it_obj = NULL;
++
++	spin_lock(&filp->table_lock);
++	idr_for_each_entry(&filp->object_idr, it_obj, it_handle) {
++		if (it_obj == obj)
++			break;
++	}
++	spin_unlock(&filp->table_lock);
++
++	if (!it_obj)
++		it_handle = 0;
++
++	return it_handle;
++}
++
++struct evdi_gem_object *evdi_gem_alloc_object(struct drm_device *dev,
++					      size_t size)
++{
++	struct evdi_gem_object *obj;
++
++	obj = kzalloc(sizeof(*obj), GFP_KERNEL);
++	if (obj == NULL)
++		return NULL;
++
++	if (drm_gem_object_init(dev, &obj->base, size) != 0) {
++		kfree(obj);
++		return NULL;
++	}
++
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	obj->base.funcs = &gem_obj_funcs;
++#endif
++
++	obj->allow_sw_cursor_rect_updates = false;
++
++	mutex_init(&obj->pages_lock);
++
++	return obj;
++}
++
++int
++evdi_gem_create(struct drm_file *file,
++		struct drm_device *dev, uint64_t size, uint32_t *handle_p)
++{
++	struct evdi_gem_object *obj;
++	int ret;
++	u32 handle;
++
++	size = roundup(size, PAGE_SIZE);
++
++	obj = evdi_gem_alloc_object(dev, size);
++	if (obj == NULL)
++		return -ENOMEM;
++
++	obj->allow_sw_cursor_rect_updates = evdi_was_called_by_mutter();
++	ret = drm_gem_handle_create(file, &obj->base, &handle);
++	if (ret) {
++		drm_gem_object_release(&obj->base);
++		kfree(obj);
++		return ret;
++	}
++#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	drm_gem_object_put(&obj->base);
++#else
++	drm_gem_object_put_unlocked(&obj->base);
++#endif
++	*handle_p = handle;
++	//printk("evdi: Buffer created by: %s", obj->base.import_attach->dmabuf->owner->name);
++	return 0;
++}
++
++static int evdi_align_pitch(int width, int cpp)
++{
++	int aligned = width;
++	int pitch_mask = 0;
++
++	switch (cpp) {
++	case 1:
++		pitch_mask = 255;
++		break;
++	case 2:
++		pitch_mask = 127;
++		break;
++	case 3:
++	case 4:
++		pitch_mask = 63;
++		break;
++	}
++
++	aligned += pitch_mask;
++	aligned &= ~pitch_mask;
++	return aligned * cpp;
++}
++
++int evdi_dumb_create(struct drm_file *file,
++		     struct drm_device *dev, struct drm_mode_create_dumb *args)
++{
++	printk("evdi_dumb_create!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
++	args->pitch = evdi_align_pitch(args->width, DIV_ROUND_UP(args->bpp, 8));
++
++	args->size = args->pitch * args->height;
++	return evdi_gem_create(file, dev, args->size, &args->handle);
++}
++
++int evdi_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
++{
++	int ret;
++
++	ret = drm_gem_mmap(filp, vma);
++	if (ret)
++		return ret;
++
++/* Some VMA modifier function patches present in 6.3 were reverted in EL kernels */
++#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
++	vm_flags_mod(vma, VM_MIXEDMAP, VM_PFNMAP);
++#else
++	vma->vm_flags &= ~VM_PFNMAP;
++	vma->vm_flags |= VM_MIXEDMAP;
++#endif
++
++	return ret;
++}
++
++#if KERNEL_VERSION(4, 17, 0) <= LINUX_VERSION_CODE
++vm_fault_t evdi_gem_fault(struct vm_fault *vmf)
++{
++	struct vm_area_struct *vma = vmf->vma;
++#else
++int evdi_gem_fault(struct vm_fault *vmf)
++{
++	struct vm_area_struct *vma = vmf->vma;
++#endif
++	struct evdi_gem_object *obj = to_evdi_bo(vma->vm_private_data);
++	struct page *page;
++	pgoff_t page_offset;
++	loff_t num_pages = obj->base.size >> PAGE_SHIFT;
++	int ret = 0;
++
++	page_offset = (vmf->address - vma->vm_start) >> PAGE_SHIFT;
++
++	if (!obj->pages || page_offset >= (unsigned long)num_pages)
++		return VM_FAULT_SIGBUS;
++
++	page = obj->pages[page_offset];
++	ret = vm_insert_page(vma, vmf->address, page);
++	switch (ret) {
++	case -EAGAIN:
++	case 0:
++	case -ERESTARTSYS:
++	case -EBUSY:
++		return VM_FAULT_NOPAGE;
++	case -ENOMEM:
++		return VM_FAULT_OOM;
++	default:
++		return VM_FAULT_SIGBUS;
++	}
++	return VM_FAULT_SIGBUS;
++}
++
++static int evdi_gem_get_pages(struct evdi_gem_object *obj,
++			      __always_unused gfp_t gfpmask)
++{
++	struct page **pages;
++
++	if (obj->pages)
++		return 0;
++
++	pages = drm_gem_get_pages(&obj->base);
++
++	if (IS_ERR(pages))
++		return PTR_ERR(pages);
++
++	obj->pages = pages;
++
++#if defined(CONFIG_X86)
++	drm_clflush_pages(obj->pages, DIV_ROUND_UP(obj->base.size, PAGE_SIZE));
++#endif
++
++	return 0;
++}
++
++static void evdi_gem_put_pages(struct evdi_gem_object *obj)
++{
++	if (obj->base.import_attach) {
++		kvfree(obj->pages);
++		obj->pages = NULL;
++		return;
++	}
++
++	drm_gem_put_pages(&obj->base, obj->pages, false, false);
++	obj->pages = NULL;
++}
++
++static int evdi_pin_pages(struct evdi_gem_object *obj)
++{
++	int ret = 0;
++
++	mutex_lock(&obj->pages_lock);
++	if (obj->pages_pin_count++ == 0) {
++		ret = evdi_gem_get_pages(obj, GFP_KERNEL);
++		if (ret)
++			obj->pages_pin_count--;
++	}
++	mutex_unlock(&obj->pages_lock);
++	return ret;
++}
++
++static void evdi_unpin_pages(struct evdi_gem_object *obj)
++{
++	mutex_lock(&obj->pages_lock);
++	if (--obj->pages_pin_count == 0)
++		evdi_gem_put_pages(obj);
++	mutex_unlock(&obj->pages_lock);
++}
++
++int evdi_gem_vmap(struct evdi_gem_object *obj)
++{
++	int page_count = DIV_ROUND_UP(obj->base.size, PAGE_SIZE);
++	int ret;
++
++	if (evdi_drm_gem_object_use_import_attach(&obj->base)) {
++#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++		struct iosys_map map = IOSYS_MAP_INIT_VADDR(NULL);
++#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
++		struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(NULL);
++#endif
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++		ret = dma_buf_vmap(obj->base.import_attach->dmabuf, &map);
++		if (ret)
++			return -ENOMEM;
++		obj->vmapping = map.vaddr;
++		obj->vmap_is_iomem = map.is_iomem;
++#else
++		obj->vmapping = dma_buf_vmap(obj->base.import_attach->dmabuf);
++		if (!obj->vmapping)
++			return -ENOMEM;
++#endif
++		return 0;
++	}
++
++	ret = evdi_pin_pages(obj);
++	if (ret)
++		return ret;
++
++	obj->vmapping = vmap(obj->pages, page_count, 0, PAGE_KERNEL);
++	if (!obj->vmapping)
++		return -ENOMEM;
++	return 0;
++}
++
++void evdi_gem_vunmap(struct evdi_gem_object *obj)
++{
++	if (evdi_drm_gem_object_use_import_attach(&obj->base)) {
++#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++		struct iosys_map map = IOSYS_MAP_INIT_VADDR(NULL);
++
++		if (obj->vmap_is_iomem)
++			iosys_map_set_vaddr_iomem(&map, obj->vmapping);
++		else
++			iosys_map_set_vaddr(&map, obj->vmapping);
++
++		dma_buf_vunmap(obj->base.import_attach->dmabuf, &map);
++
++#elif KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
++		struct dma_buf_map map;
++
++		if (obj->vmap_is_iomem)
++			dma_buf_map_set_vaddr_iomem(&map, obj->vmapping);
++		else
++			dma_buf_map_set_vaddr(&map, obj->vmapping);
++
++		dma_buf_vunmap(obj->base.import_attach->dmabuf, &map);
++#else
++		dma_buf_vunmap(obj->base.import_attach->dmabuf, obj->vmapping);
++#endif
++		obj->vmapping = NULL;
++		return;
++	}
++
++	if (obj->vmapping) {
++		vunmap(obj->vmapping);
++		obj->vmapping = NULL;
++	}
++
++	evdi_unpin_pages(obj);
++}
++
++void evdi_gem_free_object(struct drm_gem_object *gem_obj)
++{
++	struct evdi_gem_object *obj = to_evdi_bo(gem_obj);
++
++	if (obj->vmapping)
++		evdi_gem_vunmap(obj);
++
++	if (gem_obj->import_attach)
++		drm_prime_gem_destroy(gem_obj, obj->sg);
++
++	if (obj->pages)
++		evdi_gem_put_pages(obj);
++
++	if (gem_obj->dev->vma_offset_manager)
++		drm_gem_free_mmap_offset(gem_obj);
++	mutex_destroy(&obj->pages_lock);
++	drm_gem_object_release(&obj->base);
++	kfree(obj);
++}
++
++/*
++ * the dumb interface doesn't work with the GEM straight MMAP
++ * interface, it expects to do MMAP on the drm fd, like normal
++ */
++int evdi_gem_mmap(struct drm_file *file,
++		  struct drm_device *dev, uint32_t handle, uint64_t *offset)
++{
++	struct evdi_gem_object *gobj;
++	struct drm_gem_object *obj;
++	int ret = 0;
++
++	mutex_lock(&dev->struct_mutex);
++	obj = drm_gem_object_lookup(file, handle);
++	if (obj == NULL) {
++		ret = -ENOENT;
++		goto unlock;
++	}
++	gobj = to_evdi_bo(obj);
++
++	ret = evdi_pin_pages(gobj);
++	if (ret)
++		goto out;
++
++	/* Don't allow imported objects to be mapped */
++	if (obj->import_attach) {
++		EVDI_WARN("Don't allow imported objects to be mapped: owner: %s",  obj->import_attach->dmabuf->owner->name);
++		ret = -EINVAL;
++		goto out;
++	}
++
++	ret = drm_gem_create_mmap_offset(obj);
++	if (ret)
++		goto out;
++
++	*offset = drm_vma_node_offset_addr(&gobj->base.vma_node);
++
++ out:
++	drm_gem_object_put(&gobj->base);
++ unlock:
++	mutex_unlock(&dev->struct_mutex);
++	return ret;
++}
++
++void print_dma_buf_owner(struct dma_buf *dmabuf) {
++    if (dmabuf && dmabuf->owner) {
++        const char *module_name = module_name(dmabuf->owner);
++        pr_info("DMA-BUF created by module: %s\n", module_name);
++    } else {
++        pr_info("No owner information available for this DMA-BUF\n");
++    }
++}
++
++struct drm_gem_object *
++evdi_prime_import_sg_table(struct drm_device *dev,
++			   struct dma_buf_attachment *attach,
++			   struct sg_table *sg)
++{
++	struct evdi_gem_object *obj;
++	int npages;
++	bool called_by_mutter;
++printk("evdi_prime_import_sg_table");
++print_dma_buf_owner(attach->dmabuf);
++	called_by_mutter = evdi_was_called_by_mutter();
++
++	obj = evdi_gem_alloc_object(dev, attach->dmabuf->size);
++	if (IS_ERR(obj))
++		return ERR_CAST(obj);
++
++	npages = DIV_ROUND_UP(attach->dmabuf->size, PAGE_SIZE);
++	DRM_DEBUG_PRIME("Importing %d pages\n", npages);
++	obj->pages = kvmalloc_array(npages, sizeof(struct page *), GFP_KERNEL);
++	if (!obj->pages) {
++		evdi_gem_free_object(&obj->base);
++		return ERR_PTR(-ENOMEM);
++	}
++
++#if KERNEL_VERSION(5, 12, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	drm_prime_sg_to_page_array(sg, obj->pages, npages);
++#else
++	drm_prime_sg_to_page_addr_arrays(sg, obj->pages, NULL, npages);
++#endif
++	obj->sg = sg;
++	obj->allow_sw_cursor_rect_updates = called_by_mutter;
++	return &obj->base;
++}
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(EL8)
++static int evdi_prime_pin(struct drm_gem_object *obj)
++{
++	struct evdi_gem_object *bo = to_evdi_bo(obj);
++
++	return evdi_pin_pages(bo);
++}
++
++static void evdi_prime_unpin(struct drm_gem_object *obj)
++{
++	struct evdi_gem_object *bo = to_evdi_bo(obj);
++
++	evdi_unpin_pages(bo);
++}
++#endif
++
++struct sg_table *evdi_prime_get_sg_table(struct drm_gem_object *obj)
++{
++	struct evdi_gem_object *bo = to_evdi_bo(obj);
++
++#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	return drm_prime_pages_to_sg(obj->dev, bo->pages, bo->base.size >> PAGE_SHIFT);
++#else
++	return drm_prime_pages_to_sg(bo->pages, bo->base.size >> PAGE_SHIFT);
++#endif
++}
++
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_ioc32.c b/drivers/staging/lindroid-drm-loopback/evdi_ioc32.c
+new file mode 100644
+index 000000000000..d7c95d340555
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_ioc32.c
+@@ -0,0 +1,105 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * evdi_ioc32.c
++ *
++ * Copyright (c) 2016 The Chromium OS Authors
++ * Copyright (c) 2017 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/compat.h>
++
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_ioctl.h>
++#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
++#else
++#include <drm/drmP.h>
++#endif
++#include "evdi_drm.h"
++
++#include "evdi_drm_drv.h"
++
++struct drm_evdi_grabpix32 {
++	uint32_t mode;
++	int32_t buf_width;
++	int32_t buf_height;
++	int32_t buf_byte_stride;
++	uint32_t buffer_ptr32;
++	int32_t num_rects;
++	uint32_t rects_ptr32;
++};
++
++static int compat_evdi_grabpix(struct file *file,
++				unsigned int __always_unused cmd,
++				unsigned long arg)
++{
++	struct drm_evdi_grabpix32 req32;
++	struct drm_evdi_grabpix krequest;
++	int ret;
++
++	if (copy_from_user(&req32, (void __user *)arg, sizeof(req32)))
++		return -EFAULT;
++
++	krequest.mode = req32.mode;
++	krequest.buf_width = req32.buf_width;
++	krequest.buf_height = req32.buf_height;
++	krequest.buf_byte_stride = req32.buf_byte_stride;
++	krequest.buffer = compat_ptr(req32.buffer_ptr32);
++	krequest.num_rects = req32.num_rects;
++	krequest.rects = compat_ptr(req32.rects_ptr32);
++
++	ret = drm_ioctl_kernel(file, evdi_painter_grabpix_ioctl, &krequest, 0);
++	if (ret)
++		return ret;
++
++	req32.num_rects = krequest.num_rects;
++	if (copy_to_user((void __user *)arg, &req32, sizeof(req32)))
++		return -EFAULT;
++	return 0;
++}
++
++static drm_ioctl_compat_t *evdi_compat_ioctls[] = {
++	[DRM_EVDI_GRABPIX] = compat_evdi_grabpix,
++};
++
++/*
++ * Called whenever a 32-bit process running under a 64-bit kernel
++ * performs an ioctl on /dev/dri/card<n>.
++ *
++ * \param filp file pointer.
++ * \param cmd command.
++ * \param arg user argument.
++ * \return zero on success or negative number on failure.
++ */
++long evdi_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
++{
++	unsigned int nr = DRM_IOCTL_NR(cmd);
++	drm_ioctl_compat_t *fn = NULL;
++	int ret;
++
++	if (nr < DRM_COMMAND_BASE || nr >= DRM_COMMAND_END)
++		return drm_compat_ioctl(filp, cmd, arg);
++
++	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(evdi_compat_ioctls))
++		fn = evdi_compat_ioctls[nr - DRM_COMMAND_BASE];
++
++	if (fn != NULL)
++		ret = (*fn) (filp, cmd, arg);
++	else
++		ret = drm_ioctl(filp, cmd, arg);
++
++	return ret;
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_modeset.c b/drivers/staging/lindroid-drm-loopback/evdi_modeset.c
+new file mode 100644
+index 000000000000..5a7762b6ef6e
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_modeset.c
+@@ -0,0 +1,615 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * Based on parts on udlfb.c:
++ * Copyright (C) 2009 its respective authors
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++#include <linux/slab.h>
++#include <linux/file.h>
++#include <linux/fdtable.h>
++#include <linux/fs.h>
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_vblank.h>
++#include <drm/drm_damage_helper.h>
++#elif KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE
++#include <drm/drm_damage_helper.h>
++#else
++#include <drm/drmP.h>
++#endif
++#include <drm/drm_atomic.h>
++#include <drm/drm_crtc.h>
++#include <drm/drm_crtc_helper.h>
++#include <drm/drm_plane_helper.h>
++#include <drm/drm_atomic_helper.h>
++#include "evdi_drm.h"
++#include "evdi_drm_drv.h"
++#include "evdi_cursor.h"
++#include "evdi_params.h"
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#include <drm/drm_gem_atomic_helper.h>
++#else
++#include <drm/drm_gem_framebuffer_helper.h>
++#endif
++
++static void evdi_crtc_dpms(__always_unused struct drm_crtc *crtc,
++			   __always_unused int mode)
++{
++	EVDI_CHECKPT();
++}
++
++static void evdi_crtc_disable(__always_unused struct drm_crtc *crtc)
++{
++	EVDI_CHECKPT();
++	drm_crtc_vblank_off(crtc);
++}
++
++static void evdi_crtc_destroy(struct drm_crtc *crtc)
++{
++	EVDI_CHECKPT();
++	drm_crtc_cleanup(crtc);
++	kfree(crtc);
++}
++
++static void evdi_crtc_commit(__always_unused struct drm_crtc *crtc)
++{
++	EVDI_CHECKPT();
++}
++
++static void evdi_crtc_set_nofb(__always_unused struct drm_crtc *crtc)
++{
++}
++
++static void evdi_crtc_atomic_flush(
++	struct drm_crtc *crtc
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
++	, struct drm_atomic_state *state
++#else
++	, __always_unused struct drm_crtc_state *old_state
++#endif
++	)
++{
++	struct drm_crtc_state *crtc_state;
++	struct evdi_device *evdi;
++	bool notify_mode_changed;
++	bool notify_dpms;
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
++	crtc_state = drm_atomic_get_new_crtc_state(state, crtc);
++#else
++	crtc_state = crtc->state;
++#endif
++	evdi = crtc->dev->dev_private;
++	notify_mode_changed = crtc_state->active &&
++			   (crtc_state->mode_changed || evdi_painter_needs_full_modeset(evdi->painter));
++	notify_dpms = crtc_state->active_changed || evdi_painter_needs_full_modeset(evdi->painter);
++
++	if (notify_mode_changed)
++		evdi_painter_mode_changed_notify(evdi, &crtc_state->adjusted_mode);
++
++	if (notify_dpms)
++		evdi_painter_dpms_notify(evdi->painter,
++			crtc_state->active ? DRM_MODE_DPMS_ON : DRM_MODE_DPMS_OFF);
++
++	evdi_painter_set_vblank(evdi->painter, crtc, crtc_state->event);
++	evdi_painter_send_update_ready_if_needed(evdi->painter);
++//	int ret = wait_event_interruptible(evdi->poll_response_ioct_wq, !evdi->poll_done);
++
++//	if (ret < 0) {
++		// Process is likely beeing killed at this point RIP btw :(, so assume there are no more events
++	//	pr_err("evdi_crtc_atomic_flush: Wait interrupted by signal\n");
++		//evdi->poll_event = none;
++		//evdi->poll_done = false;
++		//return;
++	//}
++	//evdi->poll_done = false;
++	evdi_painter_send_vblank(evdi->painter);
++	crtc_state->event = NULL;
++}
++
++#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++static void evdi_mark_full_screen_dirty(struct evdi_device *evdi)
++{
++	const struct drm_clip_rect rect =
++		evdi_painter_framebuffer_size(evdi->painter);
++	evdi_painter_mark_dirty(evdi, &rect);
++	evdi_painter_send_update_ready_if_needed(evdi->painter);
++}
++
++static int evdi_crtc_cursor_set(struct drm_crtc *crtc,
++				struct drm_file *file,
++				uint32_t handle,
++				uint32_t width,
++				uint32_t height,
++				int32_t hot_x,
++				int32_t hot_y)
++{
++	struct drm_device *dev = crtc->dev;
++	struct evdi_device *evdi = dev->dev_private;
++	struct drm_gem_object *obj = NULL;
++	struct evdi_gem_object *eobj = NULL;
++	/*
++	 * evdi_crtc_cursor_set is callback function using
++	 * deprecated cursor entry point.
++	 * There is no info about underlaying pixel format.
++	 * Hence we are assuming that it is in ARGB 32bpp format.
++	 * This format it the only one supported in cursor composition
++	 * function.
++	 * This format is also enforced during framebuffer creation.
++	 *
++	 * Proper format will be available when driver start support
++	 * universal planes for cursor.
++	 */
++	uint32_t format = DRM_FORMAT_ARGB8888;
++	uint32_t stride = 4 * width;
++
++	EVDI_CHECKPT();
++	if (handle) {
++		mutex_lock(&dev->struct_mutex);
++		obj = drm_gem_object_lookup(file, handle);
++		if (obj)
++			eobj = to_evdi_bo(obj);
++		else
++			EVDI_ERROR("Failed to lookup gem object.\n");
++		mutex_unlock(&dev->struct_mutex);
++	}
++
++	evdi_cursor_set(evdi->cursor,
++			eobj, width, height, hot_x, hot_y,
++			format, stride);
++	#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	drm_gem_object_put(obj);
++	#else
++	drm_gem_object_put_unlocked(obj);
++	#endif
++
++	/*
++	 * For now we don't care whether the application wanted the mouse set,
++	 * or not.
++	 */
++	if (evdi->cursor_events_enabled)
++		evdi_painter_send_cursor_set(evdi->painter, evdi->cursor);
++	else
++		evdi_mark_full_screen_dirty(evdi);
++	return 0;
++}
++
++static int evdi_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
++{
++	struct drm_device *dev = crtc->dev;
++	struct evdi_device *evdi = dev->dev_private;
++
++	EVDI_CHECKPT();
++	evdi_cursor_move(evdi->cursor, x, y);
++
++	if (evdi->cursor_events_enabled)
++		evdi_painter_send_cursor_move(evdi->painter, evdi->cursor);
++	else
++		evdi_mark_full_screen_dirty(evdi);
++
++	return 0;
++}
++#endif
++
++static struct drm_crtc_helper_funcs evdi_helper_funcs = {
++	.mode_set_nofb  = evdi_crtc_set_nofb,
++	.atomic_flush   = evdi_crtc_atomic_flush,
++
++	.dpms           = evdi_crtc_dpms,
++	.commit         = evdi_crtc_commit,
++	.disable        = evdi_crtc_disable
++};
++
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
++static int evdi_enable_vblank(__always_unused struct drm_crtc *crtc)
++{
++	return 1;
++}
++
++static void evdi_disable_vblank(__always_unused struct drm_crtc *crtc)
++{
++}
++#endif
++
++void evdi_vblank(struct evdi_device *evdi) {
++}
++
++int evdi_atomic_helper_page_flip(struct drm_crtc *crtc,
++				struct drm_framebuffer *fb,
++				struct drm_pending_vblank_event *event,
++				uint32_t flags,
++				struct drm_modeset_acquire_ctx *ctx)
++{
++	struct drm_device *dev;
++	struct evdi_device *evdi;
++	struct evdi_framebuffer *efb;
++	struct evdi_event *ev_event;
++	int ret;
++	dev = crtc->dev;
++	evdi = dev->dev_private;
++	efb = evdi->painter->scanout_fb;
++
++	ev_event = evdi_create_event(evdi, swap_to, &efb->gralloc_buf_id);
++	if (!ev_event)
++		return -ENOMEM;
++
++	wake_up(&evdi->poll_ioct_wq);
++	ret = wait_event_interruptible(ev_event->wait, ev_event->completed);
++	if (ret < 0) {
++		printk("evdi_gbm_add_buf_ioctl: wait_event_interruptible interrupted: %d\n", ret);
++		return ret;
++	}
++
++	ret = ev_event->result;
++	if (ret < 0) {
++		pr_err("evdi_gbm_add_buf_ioctl: user ioctl failled\n");
++		return ret;
++	}
++
++	mutex_lock(&evdi->event_lock);
++	idr_remove(&evdi->event_idr, ev_event->poll_id);
++	mutex_unlock(&evdi->event_lock);
++	kfree(ev_event);
++
++	evdi_painter_send_vblank(evdi->painter);
++
++	return drm_atomic_helper_page_flip(crtc, fb, event, flags, ctx);
++}
++
++static const struct drm_crtc_funcs evdi_crtc_funcs = {
++	.reset                  = drm_atomic_helper_crtc_reset,
++	.destroy                = evdi_crtc_destroy,
++	.set_config             = drm_atomic_helper_set_config,
++	.page_flip              = evdi_atomic_helper_page_flip,
++	.atomic_duplicate_state = drm_atomic_helper_crtc_duplicate_state,
++	.atomic_destroy_state   = drm_atomic_helper_crtc_destroy_state,
++
++#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	.cursor_set2            = evdi_crtc_cursor_set,
++	.cursor_move            = evdi_crtc_cursor_move,
++#endif
++#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE || defined(RPI) || defined(EL8)
++	.enable_vblank          = evdi_enable_vblank,
++	.disable_vblank         = evdi_disable_vblank,
++#endif
++};
++
++static void evdi_plane_atomic_update(struct drm_plane *plane,
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++				     struct drm_atomic_state *atom_state
++#else
++				     struct drm_plane_state *old_state
++#endif
++		)
++{
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	struct drm_plane_state *old_state = drm_atomic_get_old_plane_state(atom_state, plane);
++#else
++#endif
++	struct drm_plane_state *state;
++	struct evdi_device *evdi;
++	struct evdi_painter *painter;
++	struct drm_crtc *crtc;
++
++#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	struct drm_atomic_helper_damage_iter iter;
++	struct drm_rect rect;
++	struct drm_clip_rect clip_rect;
++#endif
++	if (!plane || !plane->state) {
++		EVDI_WARN("Plane state is null\n");
++		return;
++	}
++
++	if (!plane->dev || !plane->dev->dev_private) {
++		EVDI_WARN("Plane device is null\n");
++		return;
++	}
++
++	state = plane->state;
++	evdi = plane->dev->dev_private;
++	painter = evdi->painter;
++	crtc = state->crtc;
++
++	if (!old_state->crtc && state->crtc)
++		evdi_painter_dpms_notify(evdi->painter, DRM_MODE_DPMS_ON);
++	else if (old_state->crtc && !state->crtc)
++		evdi_painter_dpms_notify(evdi->painter, DRM_MODE_DPMS_OFF);
++
++	if (state->fb) {
++		struct drm_framebuffer *fb = state->fb;
++		struct drm_framebuffer *old_fb = old_state->fb;
++		struct evdi_framebuffer *efb = to_evdi_fb(fb);
++
++		const struct drm_clip_rect fullscreen_rect = {
++			0, 0, fb->width, fb->height
++		};
++
++		if (!old_fb && crtc)
++			evdi_painter_force_full_modeset(painter);
++
++		if (old_fb &&
++		    fb->format && old_fb->format &&
++		    fb->format->format != old_fb->format->format)
++			evdi_painter_force_full_modeset(painter);
++
++		if (fb != old_fb ||
++		    evdi_painter_needs_full_modeset(painter)) {
++
++			evdi_painter_set_scanout_buffer(painter, efb);
++
++#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
++			state->visible = true;
++			state->src.x1 = 0;
++			state->src.y1 = 0;
++			state->src.x2 = fb->width << 16;
++			state->src.y2 = fb->height << 16;
++
++			drm_atomic_helper_damage_iter_init(&iter, old_state, state);
++			while (drm_atomic_helper_damage_iter_next(&iter, &rect)) {
++				clip_rect.x1 = rect.x1;
++				clip_rect.y1 = rect.y1;
++				clip_rect.x2 = rect.x2;
++				clip_rect.y2 = rect.y2;
++				evdi_painter_mark_dirty(evdi, &clip_rect);
++			}
++#endif
++
++		};
++
++		if (evdi_painter_get_num_dirts(painter) == 0)
++			evdi_painter_mark_dirty(evdi, &fullscreen_rect);
++	}
++}
++
++static void evdi_cursor_atomic_get_rect(struct drm_clip_rect *rect,
++					struct drm_plane_state *state)
++{
++	rect->x1 = (state->crtc_x < 0) ? 0 : state->crtc_x;
++	rect->y1 = (state->crtc_y < 0) ? 0 : state->crtc_y;
++	rect->x2 = state->crtc_x + state->crtc_w;
++	rect->y2 = state->crtc_y + state->crtc_h;
++}
++
++static void evdi_cursor_atomic_update(struct drm_plane *plane,
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++				     struct drm_atomic_state *atom_state
++#else
++				     struct drm_plane_state *old_state
++#endif
++		)
++{
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	struct drm_plane_state *old_state = drm_atomic_get_old_plane_state(atom_state, plane);
++
++#else
++#endif
++	if (plane && plane->state && plane->dev && plane->dev->dev_private) {
++		struct drm_plane_state *state = plane->state;
++		struct evdi_device *evdi = plane->dev->dev_private;
++		struct drm_framebuffer *fb = state->fb;
++		struct evdi_framebuffer *efb = to_evdi_fb(fb);
++
++		struct drm_clip_rect old_rect;
++		struct drm_clip_rect rect;
++		bool cursor_changed = false;
++		bool cursor_position_changed = false;
++		int32_t cursor_position_x = 0;
++		int32_t cursor_position_y = 0;
++
++		mutex_lock(&plane->dev->struct_mutex);
++
++		evdi_cursor_position(evdi->cursor, &cursor_position_x,
++		&cursor_position_y);
++		evdi_cursor_move(evdi->cursor, state->crtc_x, state->crtc_y);
++		cursor_position_changed = cursor_position_x != state->crtc_x ||
++					  cursor_position_y != state->crtc_y;
++
++		if (fb != old_state->fb) {
++			if (fb != NULL) {
++				uint32_t stride = 4 * fb->width;
++
++				evdi_cursor_set(evdi->cursor,
++						efb->obj,
++						fb->width,
++						fb->height,
++						0,
++						0,
++						fb->format->format,
++						stride);
++			}
++
++			evdi_cursor_enable(evdi->cursor, fb != NULL);
++			cursor_changed = true;
++		}
++
++		mutex_unlock(&plane->dev->struct_mutex);
++		if (!evdi->cursor_events_enabled) {
++			if (fb != NULL) {
++				if (efb->obj->allow_sw_cursor_rect_updates) {
++					evdi_cursor_atomic_get_rect(&old_rect, old_state);
++					evdi_cursor_atomic_get_rect(&rect, state);
++
++					evdi_painter_mark_dirty(evdi, &old_rect);
++				} else {
++					rect = evdi_painter_framebuffer_size(evdi->painter);
++				}
++				evdi_painter_mark_dirty(evdi, &rect);
++			}
++			return;
++		}
++
++		if (cursor_changed)
++			evdi_painter_send_cursor_set(evdi->painter,
++						     evdi->cursor);
++		if (cursor_position_changed)
++			evdi_painter_send_cursor_move(evdi->painter,
++						      evdi->cursor);
++	}
++}
++
++static const struct drm_plane_helper_funcs evdi_plane_helper_funcs = {
++	.atomic_update = evdi_plane_atomic_update,
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	.prepare_fb = drm_gem_plane_helper_prepare_fb
++#else
++	.prepare_fb = drm_gem_fb_prepare_fb
++#endif
++};
++
++static const struct drm_plane_helper_funcs evdi_cursor_helper_funcs = {
++	.atomic_update = evdi_cursor_atomic_update,
++#if KERNEL_VERSION(5, 13, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	.prepare_fb = drm_gem_plane_helper_prepare_fb
++#else
++	.prepare_fb = drm_gem_fb_prepare_fb
++#endif
++};
++
++static const struct drm_plane_funcs evdi_plane_funcs = {
++	.update_plane = drm_atomic_helper_update_plane,
++	.disable_plane = drm_atomic_helper_disable_plane,
++	.destroy = drm_plane_cleanup,
++	.reset = drm_atomic_helper_plane_reset,
++	.atomic_duplicate_state = drm_atomic_helper_plane_duplicate_state,
++	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
++};
++
++static const uint32_t formats[] = {
++	DRM_FORMAT_XRGB8888,
++	DRM_FORMAT_ARGB8888,
++	DRM_FORMAT_XBGR8888,
++	DRM_FORMAT_ABGR8888,
++};
++
++static struct drm_plane *evdi_create_plane(
++		struct drm_device *dev,
++		enum drm_plane_type type,
++		const struct drm_plane_helper_funcs *helper_funcs)
++{
++	struct drm_plane *plane;
++	int ret;
++	char *plane_type = (type == DRM_PLANE_TYPE_CURSOR) ? "cursor" : "primary";
++
++	plane = kzalloc(sizeof(*plane), GFP_KERNEL);
++	if (plane == NULL) {
++		EVDI_ERROR("Failed to allocate %s plane\n", plane_type);
++		return NULL;
++	}
++	plane->format_default = true;
++
++	ret = drm_universal_plane_init(dev,
++				       plane,
++				       0xFF,
++				       &evdi_plane_funcs,
++				       formats,
++				       ARRAY_SIZE(formats),
++				       NULL,
++				       type,
++				       NULL
++				       );
++
++	if (ret) {
++		EVDI_ERROR("Failed to initialize %s plane\n", plane_type);
++		kfree(plane);
++		return NULL;
++	}
++
++	drm_plane_helper_add(plane, helper_funcs);
++
++	return plane;
++}
++
++static int evdi_crtc_init(struct drm_device *dev)
++{
++	struct drm_crtc *crtc = NULL;
++	struct drm_plane *primary_plane = NULL;
++	struct drm_plane *cursor_plane = NULL;
++	int status = 0;
++
++	EVDI_CHECKPT();
++	crtc = kzalloc(sizeof(struct drm_crtc), GFP_KERNEL);
++	if (crtc == NULL)
++		return -ENOMEM;
++
++	primary_plane = evdi_create_plane(dev, DRM_PLANE_TYPE_PRIMARY,
++					  &evdi_plane_helper_funcs);
++
++#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	cursor_plane = evdi_create_plane(dev, DRM_PLANE_TYPE_CURSOR,
++						&evdi_cursor_helper_funcs);
++#endif
++
++#if KERNEL_VERSION(5, 0, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	drm_plane_enable_fb_damage_clips(primary_plane);
++#endif
++
++	status = drm_crtc_init_with_planes(dev, crtc,
++					   primary_plane, cursor_plane,
++					   &evdi_crtc_funcs,
++					   NULL
++					   );
++
++	EVDI_DEBUG("drm_crtc_init: %d p%p\n", status, primary_plane);
++	drm_crtc_helper_add(crtc, &evdi_helper_funcs);
++
++	return 0;
++}
++
++int evdi_atomic_helper_commit(struct drm_device * dev, struct drm_atomic_state * state, bool nonblock)
++{
++	printk("evdi_atomic_helper_commit\n");
++	return drm_atomic_helper_commit(dev, state, nonblock);
++}
++static const struct drm_mode_config_funcs evdi_mode_funcs = {
++	.fb_create = evdi_fb_user_fb_create,
++#if KERNEL_VERSION(6, 11, 0) < LINUX_VERSION_CODE || defined(EL8)
++#else
++	.output_poll_changed = NULL,
++#endif
++	.atomic_commit = evdi_atomic_helper_commit,
++	.atomic_check = drm_atomic_helper_check
++};
++
++void evdi_modeset_init(struct drm_device *dev)
++{
++	struct drm_encoder *encoder;
++
++	EVDI_CHECKPT();
++
++	drm_mode_config_init(dev);
++
++	dev->mode_config.min_width = 64;
++	dev->mode_config.min_height = 64;
++
++	dev->mode_config.max_width = 7680;
++	dev->mode_config.max_height = 4320;
++
++	dev->mode_config.prefer_shadow = 0;
++	dev->mode_config.preferred_depth = 24;
++
++	dev->mode_config.funcs = &evdi_mode_funcs;
++
++	evdi_crtc_init(dev);
++
++	encoder = evdi_encoder_init(dev);
++
++	evdi_connector_init(dev, encoder);
++
++	drm_mode_config_reset(dev);
++}
++
++void evdi_modeset_cleanup(__maybe_unused struct drm_device *dev)
++{
++#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	drm_mode_config_cleanup(dev);
++#endif
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_painter.c b/drivers/staging/lindroid-drm-loopback/evdi_painter.c
+new file mode 100644
+index 000000000000..9d518120f9e9
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_painter.c
+@@ -0,0 +1,1111 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2013 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include "linux/thread_info.h"
++#include "linux/mm.h"
++#include <linux/version.h>
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#include <drm/drm_file.h>
++#include <drm/drm_vblank.h>
++#include <drm/drm_ioctl.h>
++#elif KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
++#else
++#include <drm/drmP.h>
++#endif
++#include "evdi_drm.h"
++#include "evdi_drm_drv.h"
++#include "evdi_cursor.h"
++#include "evdi_params.h"
++#include <linux/mutex.h>
++#include <linux/compiler.h>
++#include <linux/platform_device.h>
++#include <linux/completion.h>
++
++#include <linux/dma-buf.h>
++#include <linux/vt_kern.h>
++#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE
++#include <linux/compiler_attributes.h>
++#endif
++
++#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE || defined(EL9)
++MODULE_IMPORT_NS("DMA_BUF");
++#endif
++
++#if KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#include <drm/drm_probe_helper.h>
++#endif
++
++struct evdi_event_cursor_set_pending {
++	struct drm_pending_event base;
++	struct drm_evdi_event_cursor_set cursor_set;
++};
++
++struct evdi_event_cursor_move_pending {
++	struct drm_pending_event base;
++	struct drm_evdi_event_cursor_move cursor_move;
++};
++
++struct evdi_event_update_ready_pending {
++	struct drm_pending_event base;
++	struct drm_evdi_event_update_ready update_ready;
++};
++
++struct evdi_event_dpms_pending {
++	struct drm_pending_event base;
++	struct drm_evdi_event_dpms dpms;
++};
++
++struct evdi_event_mode_changed_pending {
++	struct drm_pending_event base;
++	struct drm_evdi_event_mode_changed mode_changed;
++};
++
++struct evdi_event_crtc_state_pending {
++	struct drm_pending_event base;
++	struct drm_evdi_event_crtc_state crtc_state;
++};
++
++static void expand_rect(struct drm_clip_rect *a, const struct drm_clip_rect *b)
++{
++	a->x1 = min(a->x1, b->x1);
++	a->y1 = min(a->y1, b->y1);
++	a->x2 = max(a->x2, b->x2);
++	a->y2 = max(a->y2, b->y2);
++}
++
++static int rect_area(const struct drm_clip_rect *r)
++{
++	return (r->x2 - r->x1) * (r->y2 - r->y1);
++}
++
++static void merge_dirty_rects(struct drm_clip_rect *rects, int *count)
++{
++	int a, b;
++
++	for (a = 0; a < *count - 1; ++a) {
++		for (b = a + 1; b < *count;) {
++			/* collapse to bounding rect if it is fewer pixels */
++			const int area_a = rect_area(&rects[a]);
++			const int area_b = rect_area(&rects[b]);
++			struct drm_clip_rect bounding_rect = rects[a];
++
++			expand_rect(&bounding_rect, &rects[b]);
++
++			if (rect_area(&bounding_rect) <= area_a + area_b) {
++				rects[a] = bounding_rect;
++				rects[b] = rects[*count - 1];
++				/* repass */
++				b = a + 1;
++				--*count;
++			} else {
++				++b;
++			}
++		}
++	}
++}
++
++static void collapse_dirty_rects(struct drm_clip_rect *rects, int *count)
++{
++	int i;
++
++	EVDI_VERBOSE("Not enough space for rects. They will be collapsed");
++
++	for (i = 1; i < *count; ++i)
++		expand_rect(&rects[0], &rects[i]);
++
++	*count = 1;
++}
++
++static int copy_primary_pixels(struct evdi_framebuffer *efb,
++			       char __user *buffer,
++			       int buf_byte_stride,
++			       int num_rects, struct drm_clip_rect *rects,
++			       int const max_x,
++			       int const max_y)
++{
++	struct drm_framebuffer *fb = &efb->base;
++	struct drm_clip_rect *r;
++
++	EVDI_CHECKPT();
++
++	for (r = rects; r != rects + num_rects; ++r) {
++		const int byte_offset = r->x1 * 4;
++		const int byte_span = (r->x2 - r->x1) * 4;
++		const int src_offset = fb->offsets[0] +
++				       fb->pitches[0] * r->y1 + byte_offset;
++		const char *src = (char *)efb->obj->vmapping + src_offset;
++		const int dst_offset = buf_byte_stride * r->y1 + byte_offset;
++		char __user *dst = buffer + dst_offset;
++		int y = r->y2 - r->y1;
++
++		/* rect size may correspond to previous resolution */
++		if (max_x < r->x2 || max_y < r->y2) {
++			EVDI_WARN("Rect size beyond expected dimensions\n");
++			return -EFAULT;
++		}
++
++		EVDI_VERBOSE("copy rect %d,%d-%d,%d\n", r->x1, r->y1, r->x2,
++			     r->y2);
++
++		for (; y > 0; --y) {
++			if (copy_to_user(dst, src, byte_span))
++				return -EFAULT;
++
++			src += fb->pitches[0];
++			dst += buf_byte_stride;
++		}
++	}
++
++	return 0;
++}
++
++static void copy_cursor_pixels(struct evdi_framebuffer *efb,
++			       char __user *buffer,
++			       int buf_byte_stride,
++			       struct evdi_cursor *cursor)
++{
++	evdi_cursor_lock(cursor);
++	if (evdi_cursor_compose_and_copy(cursor,
++					 efb,
++					 buffer,
++					 buf_byte_stride))
++		EVDI_ERROR("Failed to blend cursor\n");
++
++	evdi_cursor_unlock(cursor);
++}
++
++#define painter_lock(painter)                           \
++	do {                                            \
++		EVDI_VERBOSE("Painter lock\n");         \
++		mutex_lock(&painter->lock);             \
++	} while (0)
++
++#define painter_unlock(painter)                         \
++	do {                                            \
++		EVDI_VERBOSE("Painter unlock\n");       \
++		mutex_unlock(&painter->lock);           \
++	} while (0)
++
++bool evdi_painter_is_connected(struct evdi_painter *painter)
++{
++	return painter ? painter->is_connected : false;
++}
++
++static bool is_evdi_event_squashable(struct drm_pending_event *event)
++{
++	return event->event->type == DRM_EVDI_EVENT_CURSOR_SET ||
++	       event->event->type == DRM_EVDI_EVENT_CURSOR_MOVE;
++}
++
++static void evdi_painter_add_event_to_pending_list(
++	struct evdi_painter *painter,
++	struct drm_pending_event *event)
++{
++	unsigned long flags;
++	struct drm_pending_event *last_event = NULL;
++	struct list_head *list = NULL;
++
++	spin_lock_irqsave(&painter->drm_device->event_lock, flags);
++
++	list = &painter->pending_events;
++	if (!list_empty(list)) {
++		last_event =
++		  list_last_entry(list, struct drm_pending_event, link);
++	}
++
++	if (last_event &&
++	    event->event->type == last_event->event->type &&
++	    is_evdi_event_squashable(event)) {
++		list_replace(&last_event->link, &event->link);
++		kfree(last_event);
++	} else
++		list_add_tail(&event->link, list);
++
++	spin_unlock_irqrestore(&painter->drm_device->event_lock, flags);
++}
++
++static bool evdi_painter_flush_pending_events(struct evdi_painter *painter)
++{
++	unsigned long flags;
++	struct drm_pending_event *event_to_be_sent = NULL;
++	struct list_head *list = NULL;
++	bool has_space = false;
++	bool flushed_all = false;
++
++	spin_lock_irqsave(&painter->drm_device->event_lock, flags);
++
++	list = &painter->pending_events;
++	while ((event_to_be_sent = list_first_entry_or_null(
++			list, struct drm_pending_event, link))) {
++		has_space = drm_event_reserve_init_locked(painter->drm_device,
++		    painter->drm_filp, event_to_be_sent,
++		    event_to_be_sent->event) == 0;
++		if (has_space) {
++			list_del_init(&event_to_be_sent->link);
++			drm_send_event_locked(painter->drm_device,
++					      event_to_be_sent);
++		} else
++			break;
++	}
++
++	flushed_all = list_empty(&painter->pending_events);
++	spin_unlock_irqrestore(&painter->drm_device->event_lock, flags);
++
++	return flushed_all;
++}
++
++static void evdi_painter_send_event(struct evdi_painter *painter,
++				    struct drm_pending_event *event)
++{
++	if (!event) {
++		EVDI_ERROR("Null drm event!");
++		return;
++	}
++
++	if (!painter->drm_filp) {
++		EVDI_VERBOSE("Painter is not connected!");
++		drm_event_cancel_free(painter->drm_device, event);
++		return;
++	}
++
++	if (!painter->drm_device) {
++		EVDI_WARN("Painter is not connected to drm device!");
++		drm_event_cancel_free(painter->drm_device, event);
++		return;
++	}
++
++	if (!painter->is_connected) {
++		EVDI_WARN("Painter is not connected!");
++		drm_event_cancel_free(painter->drm_device, event);
++		return;
++	}
++
++	evdi_painter_add_event_to_pending_list(painter, event);
++	if (delayed_work_pending(&painter->send_events_work))
++		return;
++
++	if (evdi_painter_flush_pending_events(painter))
++		return;
++
++	schedule_delayed_work(&painter->send_events_work, msecs_to_jiffies(5));
++}
++
++static struct drm_pending_event *create_update_ready_event(void)
++{
++	struct evdi_event_update_ready_pending *event;
++
++	event = kzalloc(sizeof(*event), GFP_KERNEL);
++	if (!event) {
++		EVDI_ERROR("Failed to create update ready event");
++		return NULL;
++	}
++
++	event->update_ready.base.type = DRM_EVDI_EVENT_UPDATE_READY;
++	event->update_ready.base.length = sizeof(event->update_ready);
++	event->base.event = &event->update_ready.base;
++	return &event->base;
++}
++
++static void evdi_painter_send_update_ready(struct evdi_painter *painter)
++{
++	struct drm_pending_event *event = create_update_ready_event();
++
++	evdi_painter_send_event(painter, event);
++}
++
++static uint32_t evdi_painter_get_gem_handle(struct evdi_painter *painter,
++					   struct evdi_gem_object *obj)
++{
++	uint32_t handle = 0;
++
++	if (!obj)
++		return 0;
++
++	handle = evdi_gem_object_handle_lookup(painter->drm_filp, &obj->base);
++
++	if (handle)
++		return handle;
++
++	if (drm_gem_handle_create(painter->drm_filp,
++			      &obj->base, &handle)) {
++		EVDI_ERROR("Failed to create gem handle for %p\n",
++			painter->drm_filp);
++	}
++
++	return handle;
++}
++
++static struct drm_pending_event *create_cursor_set_event(
++		struct evdi_painter *painter,
++		struct evdi_cursor *cursor)
++{
++	struct evdi_event_cursor_set_pending *event;
++	struct evdi_gem_object *eobj = NULL;
++
++	event = kzalloc(sizeof(*event), GFP_KERNEL);
++	if (!event) {
++		EVDI_ERROR("Failed to create cursor set event");
++		return NULL;
++	}
++
++	event->cursor_set.base.type = DRM_EVDI_EVENT_CURSOR_SET;
++	event->cursor_set.base.length = sizeof(event->cursor_set);
++
++	evdi_cursor_lock(cursor);
++	event->cursor_set.enabled = evdi_cursor_enabled(cursor);
++	evdi_cursor_hotpoint(cursor, &event->cursor_set.hot_x,
++				     &event->cursor_set.hot_y);
++	evdi_cursor_size(cursor,
++		&event->cursor_set.width,
++		&event->cursor_set.height);
++	evdi_cursor_format(cursor, &event->cursor_set.pixel_format);
++	evdi_cursor_stride(cursor, &event->cursor_set.stride);
++	eobj = evdi_cursor_gem(cursor);
++	event->cursor_set.buffer_handle =
++		evdi_painter_get_gem_handle(painter, eobj);
++	if (eobj)
++		event->cursor_set.buffer_length = eobj->base.size;
++	if (!event->cursor_set.buffer_handle) {
++		event->cursor_set.enabled = false;
++		event->cursor_set.buffer_length = 0;
++	}
++	evdi_cursor_unlock(cursor);
++
++	event->base.event = &event->cursor_set.base;
++	return &event->base;
++}
++
++void evdi_painter_send_cursor_set(struct evdi_painter *painter,
++				  struct evdi_cursor *cursor)
++{
++	struct drm_pending_event *event =
++		create_cursor_set_event(painter, cursor);
++
++	evdi_painter_send_event(painter, event);
++}
++
++static struct drm_pending_event *create_cursor_move_event(
++		struct evdi_cursor *cursor)
++{
++	struct evdi_event_cursor_move_pending *event;
++
++	event = kzalloc(sizeof(*event), GFP_KERNEL);
++	if (!event) {
++		EVDI_ERROR("Failed to create cursor move event");
++		return NULL;
++	}
++
++	event->cursor_move.base.type = DRM_EVDI_EVENT_CURSOR_MOVE;
++	event->cursor_move.base.length = sizeof(event->cursor_move);
++
++	evdi_cursor_lock(cursor);
++	evdi_cursor_position(
++		cursor,
++		&event->cursor_move.x,
++		&event->cursor_move.y);
++	evdi_cursor_unlock(cursor);
++
++	event->base.event = &event->cursor_move.base;
++	return &event->base;
++}
++
++void evdi_painter_send_cursor_move(struct evdi_painter *painter,
++				   struct evdi_cursor *cursor)
++{
++	struct drm_pending_event *event = create_cursor_move_event(cursor);
++
++	evdi_painter_send_event(painter, event);
++}
++
++static struct drm_pending_event *create_dpms_event(int mode)
++{
++	struct evdi_event_dpms_pending *event;
++
++	event = kzalloc(sizeof(*event), GFP_KERNEL);
++	if (!event) {
++		EVDI_ERROR("Failed to create dpms event");
++		return NULL;
++	}
++
++	event->dpms.base.type = DRM_EVDI_EVENT_DPMS;
++	event->dpms.base.length = sizeof(event->dpms);
++	event->dpms.mode = mode;
++	event->base.event = &event->dpms.base;
++	return &event->base;
++}
++
++static void evdi_painter_send_dpms(struct evdi_painter *painter, int mode)
++{
++	struct drm_pending_event *event = create_dpms_event(mode);
++
++	EVDI_TEST_HOOK(evdi_testhook_painter_send_dpms(mode));
++	evdi_painter_send_event(painter, event);
++}
++
++static struct drm_pending_event *create_mode_changed_event(
++	struct drm_display_mode *current_mode,
++	int32_t bits_per_pixel,
++	uint32_t pixel_format)
++{
++	struct evdi_event_mode_changed_pending *event;
++
++	event = kzalloc(sizeof(*event), GFP_KERNEL);
++	if (!event) {
++		EVDI_ERROR("Failed to create mode changed event");
++		return NULL;
++	}
++
++	event->mode_changed.base.type = DRM_EVDI_EVENT_MODE_CHANGED;
++	event->mode_changed.base.length = sizeof(event->mode_changed);
++
++	event->mode_changed.hdisplay = current_mode->hdisplay;
++	event->mode_changed.vdisplay = current_mode->vdisplay;
++	event->mode_changed.vrefresh = drm_mode_vrefresh(current_mode);
++	event->mode_changed.bits_per_pixel = bits_per_pixel;
++	event->mode_changed.pixel_format = pixel_format;
++
++	event->base.event = &event->mode_changed.base;
++	return &event->base;
++}
++
++static void evdi_painter_send_mode_changed(
++	struct evdi_painter *painter,
++	struct drm_display_mode *current_mode,
++	int32_t bits_per_pixel,
++	uint32_t pixel_format)
++{
++	struct drm_pending_event *event = create_mode_changed_event(
++		current_mode, bits_per_pixel, pixel_format);
++
++	evdi_painter_send_event(painter, event);
++}
++
++int evdi_painter_get_num_dirts(struct evdi_painter *painter)
++{
++	int num_dirts;
++
++	if (painter == NULL) {
++		EVDI_WARN("Painter is not connected!");
++		return 0;
++	}
++
++	painter_lock(painter);
++
++	num_dirts = painter->num_dirts;
++
++	painter_unlock(painter);
++
++	return num_dirts;
++}
++
++struct drm_clip_rect evdi_painter_framebuffer_size(
++	struct evdi_painter *painter)
++{
++	struct drm_clip_rect rect = {0, 0, 0, 0};
++	struct evdi_framebuffer *efb = NULL;
++
++	if (painter == NULL) {
++		EVDI_WARN("Painter is not connected!");
++		return rect;
++	}
++
++	painter_lock(painter);
++	efb = painter->scanout_fb;
++	if (!efb) {
++		if (painter->is_connected)
++			EVDI_WARN("Scanout buffer not set.");
++		goto unlock;
++	}
++	rect.x1 = 0;
++	rect.y1 = 0;
++	rect.x2 = efb->base.width;
++	rect.y2 = efb->base.height;
++unlock:
++	painter_unlock(painter);
++	return rect;
++}
++
++void evdi_painter_mark_dirty(struct evdi_device *evdi,
++			     const struct drm_clip_rect *dirty_rect)
++{
++	struct drm_clip_rect rect;
++	struct evdi_framebuffer *efb = NULL;
++	struct evdi_painter *painter = evdi->painter;
++
++	if (painter == NULL) {
++		EVDI_WARN("Painter is not connected!");
++		return;
++	}
++
++	painter_lock(painter);
++	efb = painter->scanout_fb;
++	if (!efb) {
++		if (painter->is_connected)
++			EVDI_WARN("(card%d) Skip clip rect. Scanout buffer not set.\n",
++			   evdi->dev_index);
++		goto unlock;
++	}
++
++	rect = evdi_framebuffer_sanitize_rect(efb, dirty_rect);
++
++	EVDI_VERBOSE("(card%d) %d,%d-%d,%d\n", evdi->dev_index, rect.x1,
++		     rect.y1, rect.x2, rect.y2);
++
++	if (painter->num_dirts == MAX_DIRTS)
++		merge_dirty_rects(&painter->dirty_rects[0],
++				  &painter->num_dirts);
++
++	if (painter->num_dirts == MAX_DIRTS)
++		collapse_dirty_rects(&painter->dirty_rects[0],
++				     &painter->num_dirts);
++
++	memcpy(&painter->dirty_rects[painter->num_dirts], &rect, sizeof(rect));
++	painter->num_dirts++;
++
++unlock:
++	painter_unlock(painter);
++}
++
++static void evdi_send_vblank(struct drm_crtc *crtc,
++			     struct drm_pending_vblank_event *vblank)
++{
++	if (crtc && vblank) {
++		unsigned long flags = 0;
++
++		spin_lock_irqsave(&crtc->dev->event_lock, flags);
++		drm_crtc_send_vblank_event(crtc, vblank);
++		spin_unlock_irqrestore(&crtc->dev->event_lock, flags);
++	}
++}
++
++void evdi_painter_send_vblank(struct evdi_painter *painter)
++{
++	EVDI_CHECKPT();
++
++	evdi_send_vblank(painter->crtc, painter->vblank);
++
++	painter->crtc = NULL;
++	painter->vblank = NULL;
++}
++
++void evdi_painter_set_vblank(
++	struct evdi_painter *painter,
++	struct drm_crtc *crtc,
++	struct drm_pending_vblank_event *vblank)
++{
++	EVDI_CHECKPT();
++
++	if (painter) {
++		painter_lock(painter);
++
++		evdi_painter_send_vblank(painter);
++
++		if (painter->num_dirts > 0 && painter->is_connected) {
++			painter->crtc = crtc;
++			painter->vblank = vblank;
++		} else {
++			evdi_send_vblank(crtc, vblank);
++		}
++
++		painter_unlock(painter);
++	} else {
++		evdi_send_vblank(crtc, vblank);
++	}
++}
++
++void evdi_painter_send_update_ready_if_needed(struct evdi_painter *painter)
++{
++	EVDI_CHECKPT();
++	if (painter) {
++		painter_lock(painter);
++#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE || defined(EL8)
++		if (painter->was_update_requested && painter->num_dirts) {
++#else
++		if (painter->was_update_requested) {
++#endif
++			evdi_painter_send_update_ready(painter);
++			painter->was_update_requested = false;
++		}
++
++		painter_unlock(painter);
++	} else {
++		EVDI_WARN("Painter does not exist!");
++	}
++}
++
++static const char * const dpms_str[] = { "on", "standby", "suspend", "off" };
++
++void evdi_painter_dpms_notify(struct evdi_painter *painter, int mode)
++{
++	const char *mode_str;
++
++	if (!painter) {
++		EVDI_WARN("Painter does not exist!");
++		return;
++	}
++
++	if (!painter->is_connected)
++		return;
++
++	switch (mode) {
++	case DRM_MODE_DPMS_ON:
++		fallthrough;
++	case DRM_MODE_DPMS_STANDBY:
++	case DRM_MODE_DPMS_SUSPEND:
++	case DRM_MODE_DPMS_OFF:
++		mode_str = dpms_str[mode];
++		break;
++	default:
++		mode_str = "unknown";
++	};
++	EVDI_INFO("(card%d) Notifying display power state: %s\n",
++		   painter->drm_device->primary->index, mode_str);
++	evdi_painter_send_dpms(painter, mode);
++}
++
++static void evdi_log_pixel_format(uint32_t pixel_format,
++		char *buf, size_t size)
++{
++#if KERNEL_VERSION(5, 14, 0) <= LINUX_VERSION_CODE || defined(EL8)
++	snprintf(buf, size, "pixel format %p4cc", &pixel_format);
++#else
++	struct drm_format_name_buf format_name;
++
++	drm_get_format_name(pixel_format, &format_name);
++	snprintf(buf, size, "pixel format %s", format_name.str);
++#endif
++}
++
++void evdi_painter_mode_changed_notify(struct evdi_device *evdi,
++				      struct drm_display_mode *new_mode)
++{
++	struct evdi_painter *painter = evdi->painter;
++	struct drm_framebuffer *fb;
++	int bits_per_pixel;
++	uint32_t pixel_format;
++	char buf[100];
++
++	if (painter == NULL)
++		return;
++
++	painter_lock(painter);
++	fb = &painter->scanout_fb->base;
++	if (fb == NULL) {
++		painter_unlock(painter);
++		return;
++	}
++
++	bits_per_pixel = fb->format->cpp[0] * 8;
++	pixel_format = fb->format->format;
++	painter_unlock(painter);
++
++	evdi_log_pixel_format(pixel_format, buf, sizeof(buf));
++	EVDI_INFO("(card%d) Notifying mode changed: %dx%d@%d; bpp %d; %s",
++		   evdi->dev_index, new_mode->hdisplay, new_mode->vdisplay,
++		   drm_mode_vrefresh(new_mode), bits_per_pixel, buf);
++
++	evdi_painter_send_mode_changed(painter,
++				       new_mode,
++				       bits_per_pixel,
++				       pixel_format);
++	painter->needs_full_modeset = false;
++}
++
++static void evdi_painter_events_cleanup(struct evdi_painter *painter)
++{
++	struct drm_pending_event *event, *temp;
++	unsigned long flags;
++
++	spin_lock_irqsave(&painter->drm_device->event_lock, flags);
++	list_for_each_entry_safe(event, temp, &painter->pending_events, link) {
++		list_del(&event->link);
++		kfree(event);
++	}
++	spin_unlock_irqrestore(&painter->drm_device->event_lock, flags);
++
++	cancel_delayed_work_sync(&painter->send_events_work);
++}
++
++static int
++evdi_painter_connect(struct evdi_device *evdi,
++		     int width, int height, int refresh_rate,
++		     struct drm_file *file, __always_unused int dev_index)
++{
++	struct evdi_painter *painter = evdi->painter;
++	char buf[100];
++
++	evdi_log_process(buf, sizeof(buf));
++
++	if (painter->drm_filp)
++		EVDI_WARN("(card%d) Double connect - replacing %p with %p\n",
++			  evdi->dev_index, painter->drm_filp, file);
++
++	painter_lock(painter);
++
++	painter->width = width;
++	painter->height = height;
++	painter->refresh_rate = refresh_rate;
++	painter->drm_filp = file;
++	painter->is_connected = true;
++	painter->needs_full_modeset = true;
++
++	painter_unlock(painter);
++
++	EVDI_INFO("(card%d) Connected with %s\n", evdi->dev_index, buf);
++
++	drm_helper_hpd_irq_event(evdi->ddev);
++
++	return 0;
++}
++
++static int evdi_painter_disconnect(struct evdi_device *evdi,
++	struct drm_file *file)
++{
++	struct evdi_painter *painter = evdi->painter;
++	char buf[100];
++
++	EVDI_CHECKPT();
++
++	painter_lock(painter);
++
++	if (file != painter->drm_filp) {
++		painter_unlock(painter);
++		return -EFAULT;
++	}
++
++	if (painter->scanout_fb) {
++		drm_framebuffer_put(&painter->scanout_fb->base);
++		painter->scanout_fb = NULL;
++	}
++
++	painter->is_connected = false;
++
++	evdi_log_process(buf, sizeof(buf));
++	EVDI_INFO("(card%d) Disconnected from %s\n", evdi->dev_index, buf);
++	evdi_painter_events_cleanup(painter);
++
++	evdi_painter_send_vblank(painter);
++
++	evdi_cursor_enable(evdi->cursor, false);
++
++	painter->drm_filp = NULL;
++
++	painter->was_update_requested = false;
++	evdi->cursor_events_enabled = false;
++
++	painter_unlock(painter);
++
++	drm_helper_hpd_irq_event(evdi->ddev);
++	return 0;
++}
++
++void evdi_painter_close(struct evdi_device *evdi, struct drm_file *file)
++{
++	EVDI_CHECKPT();
++
++	if (evdi->painter && file == evdi->painter->drm_filp)
++		evdi_painter_disconnect(evdi, file);
++}
++
++int evdi_painter_connect_ioctl(struct drm_device *drm_dev, void *data,
++			       struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct evdi_painter *painter = evdi->painter;
++	struct drm_evdi_connect *cmd = data;
++	int ret;
++	EVDI_CHECKPT();
++	if (painter) {
++		if (cmd->connected)
++			ret = evdi_painter_connect(evdi,
++					     cmd->width,
++					     cmd->height,
++					     cmd->refresh_rate,
++					     file,
++					     cmd->dev_index);
++		else
++			ret = evdi_painter_disconnect(evdi, file);
++
++		if (ret) {
++			EVDI_WARN("(card%d)(pid=%d) disconnect failed\n",
++				  evdi->dev_index, (int)task_pid_nr(current));
++		}
++		return ret;
++	}
++	EVDI_WARN("(card%d) Painter does not exist!", evdi->dev_index);
++	return -ENODEV;
++}
++
++int evdi_painter_grabpix_ioctl(struct drm_device *drm_dev, void *data,
++			       __always_unused struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct evdi_painter *painter = evdi->painter;
++	struct drm_evdi_grabpix *cmd = data;
++	struct evdi_framebuffer *efb = NULL;
++	struct drm_clip_rect dirty_rects[MAX_DIRTS];
++	struct drm_crtc *crtc = NULL;
++	struct drm_pending_vblank_event *vblank = NULL;
++	int err;
++	int ret;
++	struct dma_buf_attachment *import_attach;
++
++	EVDI_CHECKPT();
++
++	if (cmd->mode != EVDI_GRABPIX_MODE_DIRTY) {
++		EVDI_ERROR("Unknown command mode\n");
++		return -EINVAL;
++	}
++
++	if (cmd->num_rects < 1) {
++		EVDI_ERROR("No space for clip rects\n");
++		return -EINVAL;
++	}
++
++	if (!painter)
++		return -ENODEV;
++
++	painter_lock(painter);
++
++	if (painter->was_update_requested) {
++		EVDI_WARN("(card%d) Update ready not sent,",
++			  evdi->dev_index);
++		EVDI_WARN(" but pixels are grabbed.\n");
++	}
++
++	if (painter->num_dirts < 0) {
++		err = -EAGAIN;
++		goto err_painter;
++	}
++
++	merge_dirty_rects(&painter->dirty_rects[0],
++			  &painter->num_dirts);
++	if (painter->num_dirts > cmd->num_rects)
++		collapse_dirty_rects(&painter->dirty_rects[0],
++				     &painter->num_dirts);
++
++	cmd->num_rects = painter->num_dirts;
++	memcpy(dirty_rects, painter->dirty_rects,
++	       painter->num_dirts * sizeof(painter->dirty_rects[0]));
++
++	efb = painter->scanout_fb;
++
++	if (!efb) {
++		EVDI_ERROR("Scanout buffer not set\n");
++		err = -EAGAIN;
++		goto err_painter;
++	}
++
++	painter->num_dirts = 0;
++
++	drm_framebuffer_get(&efb->base);
++
++	crtc = painter->crtc;
++	painter->crtc = NULL;
++
++	vblank = painter->vblank;
++	painter->vblank = NULL;
++
++
++	painter_unlock(painter);
++
++	if (!efb->obj->vmapping) {
++		if (evdi_gem_vmap(efb->obj) == -ENOMEM) {
++			EVDI_ERROR("Failed to map scanout buffer\n");
++			err = -EFAULT;
++			goto err_fb;
++		}
++		if (!efb->obj->vmapping) {
++			EVDI_ERROR("Inexistent vmapping\n");
++			err = -EFAULT;
++			goto err_fb;
++		}
++	}
++
++	if ((unsigned int)cmd->buf_width != efb->base.width ||
++		(unsigned int)cmd->buf_height != efb->base.height) {
++		EVDI_DEBUG("Invalid buffer dimension\n");
++		err = -EINVAL;
++		goto err_fb;
++	}
++
++	if (copy_to_user(cmd->rects, dirty_rects,
++		cmd->num_rects * sizeof(cmd->rects[0]))) {
++		err = -EFAULT;
++		goto err_fb;
++	}
++
++	import_attach = efb->obj->base.import_attach;
++	if (import_attach) {
++		ret = dma_buf_begin_cpu_access(import_attach->dmabuf,
++					       DMA_FROM_DEVICE);
++		if (ret) {
++			err = -EFAULT;
++			goto err_fb;
++		}
++	}
++
++	err = copy_primary_pixels(efb,
++				  cmd->buffer,
++				  cmd->buf_byte_stride,
++				  cmd->num_rects,
++				  dirty_rects,
++				  cmd->buf_width,
++				  cmd->buf_height);
++	if (err == 0 && !evdi->cursor_events_enabled)
++		copy_cursor_pixels(efb,
++				   cmd->buffer,
++				   cmd->buf_byte_stride,
++				   evdi->cursor);
++
++	if (import_attach)
++		dma_buf_end_cpu_access(import_attach->dmabuf,
++				       DMA_FROM_DEVICE);
++
++err_fb:
++	evdi_send_vblank(crtc, vblank);
++
++	drm_framebuffer_put(&efb->base);
++
++	return err;
++
++err_painter:
++	painter_unlock(painter);
++	return err;
++}
++
++int evdi_painter_request_update_ioctl(struct drm_device *drm_dev,
++				      __always_unused void *data,
++				      __always_unused struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct evdi_painter *painter = evdi->painter;
++	int result = 0;
++
++	if (painter) {
++		painter_lock(painter);
++
++		if (painter->was_update_requested) {
++			EVDI_WARN
++			  ("(card%d) Update was already requested - ignoring\n",
++			   evdi->dev_index);
++		} else {
++			if (painter->num_dirts > 0)
++				result = 1;
++			else
++				painter->was_update_requested = true;
++		}
++
++		painter_unlock(painter);
++
++		return result;
++	} else {
++		return -ENODEV;
++	}
++}
++
++static void evdi_send_events_work(struct work_struct *work)
++{
++	struct evdi_painter *painter =
++		container_of(work, struct evdi_painter,	send_events_work.work);
++
++	if (evdi_painter_flush_pending_events(painter))
++		return;
++
++	schedule_delayed_work(&painter->send_events_work, msecs_to_jiffies(5));
++}
++
++int evdi_painter_init(struct evdi_device *dev)
++{
++	EVDI_CHECKPT();
++	dev->painter = kzalloc(sizeof(*dev->painter), GFP_KERNEL);
++	if (dev->painter) {
++		mutex_init(&dev->painter->lock);
++		dev->painter->width = 0;
++		dev->painter->height = 0;
++		dev->painter->refresh_rate = 0;
++		dev->painter->needs_full_modeset = true;
++		dev->painter->crtc = NULL;
++		dev->painter->vblank = NULL;
++		dev->painter->drm_device = dev->ddev;
++
++		INIT_LIST_HEAD(&dev->painter->pending_events);
++		INIT_DELAYED_WORK(&dev->painter->send_events_work,
++			evdi_send_events_work);
++		return 0;
++	}
++	return -ENOMEM;
++}
++
++void evdi_painter_cleanup(struct evdi_painter *painter)
++{
++	EVDI_CHECKPT();
++	if (!painter) {
++		EVDI_WARN("Painter does not exist\n");
++		return;
++	}
++
++	painter_lock(painter);
++	painter->width = 0;
++	painter->height = 0;
++	painter->refresh_rate = 0;
++	if (painter->scanout_fb)
++		drm_framebuffer_put(&painter->scanout_fb->base);
++	painter->scanout_fb = NULL;
++
++	evdi_painter_send_vblank(painter);
++
++	evdi_painter_events_cleanup(painter);
++
++	painter->drm_device = NULL;
++	painter_unlock(painter);
++	kfree(painter);
++}
++
++void evdi_painter_set_scanout_buffer(struct evdi_painter *painter,
++				     struct evdi_framebuffer *newfb)
++{
++	struct evdi_framebuffer *oldfb = NULL;
++
++	if (newfb)
++		drm_framebuffer_get(&newfb->base);
++
++	painter_lock(painter);
++
++	oldfb = painter->scanout_fb;
++	painter->scanout_fb = newfb;
++
++	painter_unlock(painter);
++
++	if (oldfb)
++		drm_framebuffer_put(&oldfb->base);
++}
++
++bool evdi_painter_needs_full_modeset(struct evdi_painter *painter)
++{
++	return painter ? painter->needs_full_modeset : false;
++}
++
++
++void evdi_painter_force_full_modeset(struct evdi_painter *painter)
++{
++	if (painter)
++		painter->needs_full_modeset = true;
++}
++
++int evdi_painter_enable_cursor_events_ioctl(struct drm_device *drm_dev, void *data,
++					__always_unused struct drm_file *file)
++{
++	struct evdi_device *evdi = drm_dev->dev_private;
++	struct drm_evdi_enable_cursor_events *cmd = data;
++
++	evdi->cursor_events_enabled = cmd->enable;
++
++	return 0;
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_params.c b/drivers/staging/lindroid-drm-loopback/evdi_params.c
+new file mode 100644
+index 000000000000..fd87fff4371e
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_params.c
+@@ -0,0 +1,25 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/module.h>
++#include <linux/moduleparam.h>
++
++#include "evdi_params.h"
++#include "evdi_debug.h"
++
++unsigned int evdi_loglevel __read_mostly = EVDI_LOGLEVEL_VERBOSE;
++unsigned short int evdi_initial_device_count __read_mostly;
++
++module_param_named(initial_loglevel, evdi_loglevel, int, 0400);
++MODULE_PARM_DESC(initial_loglevel, "Initial log level");
++
++module_param_named(initial_device_count,
++		   evdi_initial_device_count, ushort, 0644);
++MODULE_PARM_DESC(initial_device_count, "Initial DRM device count (default: 0)");
++
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_params.h b/drivers/staging/lindroid-drm-loopback/evdi_params.h
+new file mode 100644
+index 000000000000..5d67c6b712ab
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_params.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#ifndef EVDI_PARAMS_H
++#define EVDI_PARAMS_H
++
++extern unsigned int evdi_loglevel;
++extern unsigned short int evdi_initial_device_count;
++
++#endif /* EVDI_PARAMS_H */
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_platform_dev.c b/drivers/staging/lindroid-drm-loopback/evdi_platform_dev.c
+new file mode 100644
+index 000000000000..f601b4c67420
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_platform_dev.c
+@@ -0,0 +1,152 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include "evdi_platform_dev.h"
++#include <linux/version.h>
++#include <linux/dma-mapping.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++
++#include "evdi_platform_drv.h"
++#include "evdi_debug.h"
++#include "evdi_drm_drv.h"
++
++struct evdi_platform_device_data {
++	struct drm_device *drm_dev;
++	struct device *parent;
++	bool symlinked;
++};
++
++struct platform_device *evdi_platform_dev_create(struct platform_device_info *info)
++{
++	struct platform_device *platform_dev = NULL;
++
++	platform_dev = platform_device_register_full(info);
++	if (dma_set_mask(&platform_dev->dev, DMA_BIT_MASK(64))) {
++		EVDI_WARN("Unable to change dma mask to 64 bit. ");
++		EVDI_WARN("Sticking with 32 bit\n");
++	}
++
++	EVDI_INFO("Evdi platform_device create\n");
++
++	return platform_dev;
++}
++
++void evdi_platform_dev_destroy(struct platform_device *dev)
++{
++	platform_device_unregister(dev);
++	EVDI_INFO("Evdi platform_device destroy\n");
++}
++
++int evdi_platform_device_probe(struct platform_device *pdev)
++{
++	struct drm_device *dev;
++	struct evdi_platform_device_data *data;
++
++	EVDI_CHECKPT();
++	data = kzalloc(sizeof(struct evdi_platform_device_data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE || defined(EL8)
++#else
++	#if IS_ENABLED(CONFIG_IOMMU_API) && defined(CONFIG_INTEL_IOMMU)
++	/* Intel-IOMMU workaround: platform-bus unsupported, force ID-mapping */
++	#define INTEL_IOMMU_DUMMY_DOMAIN                ((void *)-1)
++	pdev->dev.archdata.iommu = INTEL_IOMMU_DUMMY_DOMAIN;
++	#endif
++#endif
++
++	dev = evdi_drm_device_create(&pdev->dev);
++	if (IS_ERR_OR_NULL(dev))
++		goto err_free;
++
++	data->drm_dev = dev;
++	data->symlinked = false;
++	platform_set_drvdata(pdev, data);
++	return PTR_ERR_OR_ZERO(dev);
++
++err_free:
++	kfree(data);
++	return PTR_ERR_OR_ZERO(dev);
++}
++
++#if KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE
++void evdi_platform_device_remove(struct platform_device *pdev)
++#else
++int evdi_platform_device_remove(struct platform_device *pdev)
++#endif
++{
++	struct evdi_platform_device_data *data = platform_get_drvdata(pdev);
++
++	EVDI_CHECKPT();
++
++	evdi_drm_device_remove(data->drm_dev);
++	kfree(data);
++#if KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE
++#else
++	return 0;
++#endif
++}
++
++bool evdi_platform_device_is_free(struct platform_device *pdev)
++{
++	struct evdi_platform_device_data *data = platform_get_drvdata(pdev);
++	struct evdi_device *evdi = data->drm_dev->dev_private;
++
++	if (evdi && !evdi_painter_is_connected(evdi->painter) &&
++	    !data->symlinked)
++		return true;
++	return false;
++}
++
++void evdi_platform_device_link(struct platform_device *pdev,
++				      struct device *parent)
++{
++	struct evdi_platform_device_data *data = NULL;
++	int ret = 0;
++
++	if (!parent || !pdev)
++		return;
++
++	data = platform_get_drvdata(pdev);
++	if (!evdi_platform_device_is_free(pdev)) {
++		EVDI_FATAL("Device is already attached can't symlink again\n");
++		return;
++	}
++
++	ret = sysfs_create_link(&pdev->dev.kobj, &parent->kobj, "device");
++	if (ret) {
++		EVDI_FATAL("Failed to create sysfs link from evdi to parent device\n");
++	} else {
++		data->symlinked = true;
++		data->parent = parent;
++	}
++}
++
++void evdi_platform_device_unlink_if_linked_with(struct platform_device *pdev,
++				struct device *parent)
++{
++	struct evdi_platform_device_data *data = platform_get_drvdata(pdev);
++
++	if (parent && data->parent == parent) {
++		sysfs_remove_link(&pdev->dev.kobj, "device");
++		data->symlinked = false;
++		data->parent = NULL;
++		EVDI_INFO("Detached from parent device\n");
++	}
++}
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_platform_dev.h b/drivers/staging/lindroid-drm-loopback/evdi_platform_dev.h
+new file mode 100644
+index 000000000000..132409054d05
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_platform_dev.h
+@@ -0,0 +1,47 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * evdi_platform_dev.h
++ *
++ * Copyright (c) 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _EVDI_PLATFORM_DEV_H_
++#define _EVDI_PLATFORM_DEV_H_
++
++#include <linux/types.h>
++#include <linux/version.h>
++
++struct platform_device_info;
++struct platform_device;
++struct drm_driver;
++struct device;
++
++struct platform_device *evdi_platform_dev_create(struct platform_device_info *info);
++void evdi_platform_dev_destroy(struct platform_device *dev);
++
++int evdi_platform_device_probe(struct platform_device *pdev);
++#if KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE
++void evdi_platform_device_remove(struct platform_device *pdev);
++#else
++int evdi_platform_device_remove(struct platform_device *pdev);
++#endif
++bool evdi_platform_device_is_free(struct platform_device *pdev);
++void evdi_platform_device_link(struct platform_device *pdev,
++				struct device *parent);
++void evdi_platform_device_unlink_if_linked_with(struct platform_device *pdev,
++				struct device *parent);
++
++#endif
++
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_platform_drv.c b/drivers/staging/lindroid-drm-loopback/evdi_platform_drv.c
+new file mode 100644
+index 000000000000..891ddeec1c6a
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_platform_drv.c
+@@ -0,0 +1,214 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2012 Red Hat
++ * Copyright (c) 2015 - 2020 DisplayLink (UK) Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License v2. See the file COPYING in the main directory of this archive for
++ * more details.
++ */
++
++#include <linux/version.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/dma-mapping.h>
++
++#include "evdi_params.h"
++#include "evdi_debug.h"
++#include "evdi_platform_drv.h"
++#include "evdi_platform_dev.h"
++#include "evdi_sysfs.h"
++
++MODULE_AUTHOR("DisplayLink (UK) Ltd.");
++MODULE_DESCRIPTION("Extensible Virtual Display Interface");
++MODULE_LICENSE("GPL");
++
++#define EVDI_DEVICE_COUNT_MAX 16
++
++static struct evdi_platform_drv_context {
++	struct device *root_dev;
++	unsigned int dev_count;
++	struct platform_device *devices[EVDI_DEVICE_COUNT_MAX];
++	struct mutex lock;
++} g_ctx;
++
++#define evdi_platform_drv_context_lock(ctx) \
++		mutex_lock(&ctx->lock)
++
++#define evdi_platform_drv_context_unlock(ctx) \
++		mutex_unlock(&ctx->lock)
++
++static int evdi_platform_drv_get_free_idx(struct evdi_platform_drv_context *ctx)
++{
++	int i;
++
++	for (i = 0; i < EVDI_DEVICE_COUNT_MAX; ++i) {
++		if (ctx->devices[i] == NULL)
++			return i;
++	}
++	return -ENOMEM;
++}
++
++static struct platform_device *evdi_platform_drv_get_free_device(struct evdi_platform_drv_context *ctx)
++{
++	int i;
++	struct platform_device *pdev = NULL;
++
++	for (i = 0; i < EVDI_DEVICE_COUNT_MAX; ++i) {
++		pdev = ctx->devices[i];
++		if (pdev && evdi_platform_device_is_free(pdev))
++			return pdev;
++	}
++	return NULL;
++}
++
++
++static struct platform_device *evdi_platform_drv_create_new_device(struct evdi_platform_drv_context *ctx)
++{
++	struct platform_device *pdev = NULL;
++	struct platform_device_info pdevinfo = {
++		.parent = NULL,
++		.name = DRIVER_NAME,
++		.id = evdi_platform_drv_get_free_idx(ctx),
++		.res = NULL,
++		.num_res = 0,
++		.data = NULL,
++		.size_data = 0,
++		.dma_mask = DMA_BIT_MASK(32),
++	};
++
++	if (pdevinfo.id < 0 || ctx->dev_count >= EVDI_DEVICE_COUNT_MAX) {
++		EVDI_ERROR("Evdi device add failed. Too many devices.\n");
++		return ERR_PTR(-EINVAL);
++	}
++
++	pdev = evdi_platform_dev_create(&pdevinfo);
++	ctx->devices[pdevinfo.id] = pdev;
++	ctx->dev_count++;
++
++	return pdev;
++}
++
++int evdi_platform_device_add(struct device *device, struct device *parent)
++{
++	struct evdi_platform_drv_context *ctx =
++		(struct evdi_platform_drv_context *)dev_get_drvdata(device);
++	struct platform_device *pdev = NULL;
++
++	evdi_platform_drv_context_lock(ctx);
++	if (parent)
++		pdev = evdi_platform_drv_get_free_device(ctx);
++
++	if (IS_ERR_OR_NULL(pdev))
++		pdev = evdi_platform_drv_create_new_device(ctx);
++	evdi_platform_drv_context_unlock(ctx);
++
++	if (IS_ERR_OR_NULL(pdev))
++		return -EINVAL;
++
++	evdi_platform_device_link(pdev, parent);
++	return 0;
++}
++
++int evdi_platform_add_devices(struct device *device, unsigned int val)
++{
++	unsigned int dev_count = evdi_platform_device_count(device);
++
++	if (val == 0) {
++		EVDI_WARN("Adding 0 devices has no effect\n");
++		return 0;
++	}
++	if (val > EVDI_DEVICE_COUNT_MAX - dev_count) {
++		EVDI_ERROR("Evdi device add failed. Too many devices.\n");
++		return -EINVAL;
++	}
++
++	EVDI_INFO("Increasing device count to %u\n", dev_count + val);
++	while (val-- && evdi_platform_device_add(device, NULL) == 0)
++		;
++	return 0;
++}
++
++void evdi_platform_remove_all_devices(struct device *device)
++{
++	int i;
++	struct evdi_platform_drv_context *ctx =
++		(struct evdi_platform_drv_context *)dev_get_drvdata(device);
++
++	evdi_platform_drv_context_lock(ctx);
++	for (i = 0; i < EVDI_DEVICE_COUNT_MAX; ++i) {
++		if (ctx->devices[i]) {
++			EVDI_INFO("Removing evdi %d\n", i);
++			evdi_platform_dev_destroy(ctx->devices[i]);
++			g_ctx.dev_count--;
++			g_ctx.devices[i] = NULL;
++		}
++	}
++	ctx->dev_count = 0;
++	evdi_platform_drv_context_unlock(ctx);
++}
++
++unsigned int evdi_platform_device_count(struct device *device)
++{
++	unsigned int count = 0;
++	struct evdi_platform_drv_context *ctx = NULL;
++
++	ctx = (struct evdi_platform_drv_context *)dev_get_drvdata(device);
++	evdi_platform_drv_context_lock(ctx);
++	count = ctx->dev_count;
++	evdi_platform_drv_context_unlock(ctx);
++
++	return count;
++
++}
++
++static struct platform_driver evdi_platform_driver = {
++	.probe = evdi_platform_device_probe,
++	.remove = evdi_platform_device_remove,
++	.driver = {
++		   .name = DRIVER_NAME,
++		   .mod_name = KBUILD_MODNAME,
++		   .owner = THIS_MODULE,
++	}
++};
++
++static int __init evdi_init(void)
++{
++	int ret;
++
++	EVDI_INFO("Initialising logging on level %u\n", evdi_loglevel);
++	EVDI_INFO("Atomic driver: yes");
++
++	memset(&g_ctx, 0, sizeof(g_ctx));
++	g_ctx.root_dev = root_device_register(DRIVER_NAME);
++	mutex_init(&g_ctx.lock);
++	dev_set_drvdata(g_ctx.root_dev, &g_ctx);
++
++	evdi_sysfs_init(g_ctx.root_dev);
++	ret = platform_driver_register(&evdi_platform_driver);
++	if (ret)
++		return ret;
++
++	if (evdi_initial_device_count)
++		return evdi_platform_add_devices(
++			g_ctx.root_dev, evdi_initial_device_count);
++
++	return 0;
++}
++
++static void __exit evdi_exit(void)
++{
++	EVDI_CHECKPT();
++	evdi_platform_remove_all_devices(g_ctx.root_dev);
++	platform_driver_unregister(&evdi_platform_driver);
++
++	if (!PTR_ERR_OR_ZERO(g_ctx.root_dev)) {
++		evdi_sysfs_exit(g_ctx.root_dev);
++		dev_set_drvdata(g_ctx.root_dev, NULL);
++		root_device_unregister(g_ctx.root_dev);
++	}
++	EVDI_INFO("Exit %s driver\n", DRIVER_NAME);
++}
++
++module_init(evdi_init);
++module_exit(evdi_exit);
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_platform_drv.h b/drivers/staging/lindroid-drm-loopback/evdi_platform_drv.h
+new file mode 100644
+index 000000000000..3a82ade50d66
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_platform_drv.h
+@@ -0,0 +1,40 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * evdi_platform_drv.h
++ *
++ * Copyright (c) 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _EVDI_PLATFORM_DRV_H_
++#define _EVDI_PLATFORM_DRV_H_
++
++struct device;
++struct platform_device_info;
++
++#define DRIVER_NAME   "evdi-lindroid"
++#define DRIVER_DESC   "Lindroid DRM Interface"
++#define DRIVER_DATE   "NEVER"
++
++#define DRIVER_MAJOR 1
++#define DRIVER_MINOR 0
++#define DRIVER_PATCH 0
++
++void evdi_platform_remove_all_devices(struct device *device);
++unsigned int evdi_platform_device_count(struct device *device);
++int evdi_platform_add_devices(struct device *device, unsigned int val);
++int evdi_platform_device_add(struct device *device, struct device *parent);
++
++#endif
++
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_sysfs.c b/drivers/staging/lindroid-drm-loopback/evdi_sysfs.c
+new file mode 100644
+index 000000000000..3a701a0b02f0
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_sysfs.c
+@@ -0,0 +1,129 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * evdi_sysfs.c
++ *
++ * Copyright (c) 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++
++#include <linux/device.h>
++#include <linux/slab.h>
++
++#include "evdi_sysfs.h"
++#include "evdi_params.h"
++#include "evdi_debug.h"
++#include "evdi_platform_drv.h"
++
++static ssize_t version_show(__always_unused struct device *dev,
++			    __always_unused struct device_attribute *attr,
++			    char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u.%u.%u\n", DRIVER_MAJOR,
++			DRIVER_MINOR, DRIVER_PATCH);
++}
++
++static ssize_t count_show(__always_unused struct device *dev,
++			  __always_unused struct device_attribute *attr,
++			  char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", evdi_platform_device_count(dev));
++}
++
++static ssize_t add_store(struct device *dev,
++			 __always_unused struct device_attribute *attr,
++			 const char *buf, size_t count)
++{
++	unsigned int val;
++	int ret;
++
++	if (kstrtouint(buf, 10, &val)) {
++		EVDI_ERROR("Invalid device count \"%s\"\n", buf);
++		return -EINVAL;
++	}
++
++	ret = evdi_platform_add_devices(dev, val);
++	if (ret)
++		return ret;
++
++	return count;
++}
++
++static ssize_t remove_all_store(struct device *dev,
++				__always_unused struct device_attribute *attr,
++				__always_unused const char *buf,
++				size_t count)
++{
++	evdi_platform_remove_all_devices(dev);
++	return count;
++}
++
++static ssize_t loglevel_show(__always_unused struct device *dev,
++			     __always_unused struct device_attribute *attr,
++			     char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", evdi_loglevel);
++}
++
++static ssize_t loglevel_store(__always_unused struct device *dev,
++			      __always_unused struct device_attribute *attr,
++			      const char *buf,
++			      size_t count)
++{
++	unsigned int val;
++
++	if (kstrtouint(buf, 10, &val)) {
++		EVDI_ERROR("Unable to parse %u\n", val);
++		return -EINVAL;
++	}
++	if (val > EVDI_LOGLEVEL_VERBOSE) {
++		EVDI_ERROR("Invalid loglevel %u\n", val);
++		return -EINVAL;
++	}
++
++	EVDI_INFO("Setting loglevel to %u\n", val);
++	evdi_loglevel = val;
++	return count;
++}
++
++static struct device_attribute evdi_device_attributes[] = {
++	__ATTR_RO(count),
++	__ATTR_RO(version),
++	__ATTR_RW(loglevel),
++	__ATTR_WO(add),
++	__ATTR_WO(remove_all)
++};
++
++void evdi_sysfs_init(struct device *root)
++{
++	unsigned int i;
++
++	if (!PTR_ERR_OR_ZERO(root))
++		for (i = 0; i < ARRAY_SIZE(evdi_device_attributes); i++)
++			device_create_file(root, &evdi_device_attributes[i]);
++}
++
++void evdi_sysfs_exit(struct device *root)
++{
++	unsigned int i;
++
++	if (PTR_ERR_OR_ZERO(root)) {
++		EVDI_ERROR("root device is null");
++		return;
++	}
++	for (i = 0; i < ARRAY_SIZE(evdi_device_attributes); i++)
++		device_remove_file(root, &evdi_device_attributes[i]);
++}
++
+diff --git a/drivers/staging/lindroid-drm-loopback/evdi_sysfs.h b/drivers/staging/lindroid-drm-loopback/evdi_sysfs.h
+new file mode 100644
+index 000000000000..9207bf77e3a0
+--- /dev/null
++++ b/drivers/staging/lindroid-drm-loopback/evdi_sysfs.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ * evdi_sysfs.h
++ *
++ * Copyright (c) 2020 DisplayLink (UK) Ltd.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _EVDI_SYSFS_H_
++#define _EVDI_SYSFS_H_
++
++struct device;
++
++void evdi_sysfs_init(struct device *root);
++void evdi_sysfs_exit(struct device *root);
++
++#endif
+diff --git a/fs/overlayfs/util.c b/fs/overlayfs/util.c
+index 36116cd1537f..be775f5c4b2e 100644
+--- a/fs/overlayfs/util.c
++++ b/fs/overlayfs/util.c
+@@ -143,9 +143,7 @@ bool ovl_dentry_weird(struct dentry *dentry)
+ 		return true;
+ 
+ 	return dentry->d_flags & (DCACHE_NEED_AUTOMOUNT |
+-				  DCACHE_MANAGE_TRANSIT |
+-				  DCACHE_OP_HASH |
+-				  DCACHE_OP_COMPARE);
++				  DCACHE_MANAGE_TRANSIT);
+ }
+ 
+ enum ovl_path_type ovl_path_type(struct dentry *dentry)
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 97436ce3c4cf..e5042b10cb33 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -971,8 +971,10 @@ struct task_struct {
+ 	struct nameidata		*nameidata;
+ 
+ #ifdef CONFIG_SYSVIPC
+-	struct sysv_sem			sysvsem;
+-	struct sysv_shm			sysvshm;
++	// struct sysv_sem			sysvsem;
++	/* sysvsem is in the ANDROID_KABI_RESERVE(1) field below */
++	// struct sysv_shm			sysvshm;
++	/* sysvshm is in the ANDROID_KABI_RESERVE(1) field below */
+ #endif
+ #ifdef CONFIG_DETECT_HUNG_TASK
+ 	unsigned long			last_switch_count;
+@@ -1385,9 +1387,18 @@ struct task_struct {
+ 	ANDROID_KABI_RESERVE(3);
+ 	ANDROID_KABI_RESERVE(4);
+ 	ANDROID_KABI_RESERVE(5);
++
++#if defined(CONFIG_SYSVIPC)
++	// struct sysv_sem			sysvsem;
++	ANDROID_KABI_USE(6, struct sysv_sem sysvsem);
++	// struct sysv_shm			sysvshm;
++	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(7); ANDROID_KABI_RESERVE(8),
++						  struct sysv_shm sysvshm);
++#else
+ 	ANDROID_KABI_RESERVE(6);
+ 	ANDROID_KABI_RESERVE(7);
+ 	ANDROID_KABI_RESERVE(8);
++#endif
+ 
+ 	/*
+ 	 * New fields for task_struct should be added above here, so that
+diff --git a/include/linux/sched/user.h b/include/linux/sched/user.h
+index 6d63a5260130..b96fe706b5ef 100644
+--- a/include/linux/sched/user.h
++++ b/include/linux/sched/user.h
+@@ -23,7 +23,7 @@ struct user_struct {
+ #endif
+ #ifdef CONFIG_POSIX_MQUEUE
+ 	/* protected by mq_lock	*/
+-	unsigned long mq_bytes;	/* How many bytes can be allocated to mqueue? */
++	//unsigned long mq_bytes;	/* How many bytes can be allocated to mqueue? */
+ #endif
+ 	unsigned long locked_shm; /* How many pages of mlocked shm ? */
+ 	unsigned long unix_inflight;	/* How many files in flight in unix sockets */
+@@ -44,9 +44,15 @@ struct user_struct {
+ 	/* Miscellaneous per-user rate limit */
+ 	struct ratelimit_state ratelimit;
+ 
++#if defined(CONFIG_POSIX_MQUEUE)
++	ANDROID_KABI_USE(1, unsigned long mq_bytes);
++	ANDROID_KABI_RESERVE(2);
++	ANDROID_OEM_DATA_ARRAY(1, 2);
++#else
+ 	ANDROID_KABI_RESERVE(1);
+ 	ANDROID_KABI_RESERVE(2);
+ 	ANDROID_OEM_DATA_ARRAY(1, 2);
++#endif
+ };
+ 
+ extern int uids_sysfs_init(void);
+diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
+index 016939a9c6dc..9a1734254a8a 100644
+--- a/kernel/cgroup/cgroup.c
++++ b/kernel/cgroup/cgroup.c
+@@ -4043,6 +4043,10 @@ static int cgroup_add_file(struct cgroup_subsys_state *css, struct cgroup *cgrp,
+ 		cfile->kn = kn;
+ 		spin_unlock_irq(&cgroup_file_kn_lock);
+ 	}
++	if (cft->ss && (cgrp->root->flags & CGRP_ROOT_NOPREFIX) && !(cft->flags & CFTYPE_NO_PREFIX)) {
++				snprintf(name, CGROUP_FILE_NAME_MAX, "%s.%s", cft->ss->name, cft->name);
++				kernfs_create_link(cgrp->kn, name, kn);
++	}
+ 
+ 	return 0;
+ }
