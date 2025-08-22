@@ -3,17 +3,19 @@ import shutil
 from pathlib import Path
 
 import lz4.frame
-from sh import Command, curl
+from sh import Command, chmod
 
 from kernel_builder.config.config import IMAGE_COMP
 from kernel_builder.constants import WORKSPACE
 from kernel_builder.utils.fs import FileSystem
 from kernel_builder.utils.log import log
-
+from kernel_builder.utils.github import GithubAPI
+from kernel_builder.utils.command import curl
 
 class KPMPatcher:
     def __init__(self, ksu: str) -> None:
         self.fs: FileSystem = FileSystem()
+        self.gh = GithubAPI()
         self.image_comp: str = IMAGE_COMP
         self.ksu: str = ksu
 
@@ -28,30 +30,26 @@ class KPMPatcher:
         if self.ksu != "SUKI":
             return
 
-        log("Patching KPM")
+        log("Patching KPM for SukiSU variant")
         cwd: Path = Path.cwd()
-        temp: Path = cwd / "temp"
+        temp: Path = cwd / "kpm_patch"
         self.fs.reset_path(temp)
-        assets: dict[str, str] = {
-            "kpimg": (
-                "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/raw/refs/heads/main/patch/res/kpimg"
-            ),
-            "kptools": (
-                "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/raw/refs/heads/main/patch/res/kptools-linux"
-            ),
-        }
         image: str = "Image" if self.image_comp == "raw" else f"Image.{self.image_comp}"
         image_path: Path = WORKSPACE / "out" / "arch" / "arm64" / "boot" / image
         decompressed: Path = temp / "Image"
         temp_img: Path = temp / image
+        kpm_patcher_path: Path = temp / "patcher"
 
         try:
             self.fs.cd(temp)
 
-            for name, url in assets.items():
-                dest: Path = temp / name
-                curl("-fsSL", "-o", dest, url)
-                dest.chmod(0o755)
+            latest_kpm_patcher: str = self.gh.fetch_latest_download_url(
+                "https://api.github.com/repos/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest",
+                "patch_linux"
+            )
+            curl("-o", str(kpm_patcher_path), latest_kpm_patcher)
+            chmod("a+x", str(kpm_patcher_path))
+            patcher: Command = Command(kpm_patcher_path)
 
             shutil.move(image_path, temp_img)
             if self.image_comp == "raw":
@@ -63,19 +61,7 @@ class KPMPatcher:
                 ):
                     shutil.copyfileobj(fsrc, fdst)
 
-            kptools: Command = Command(str(temp / "kptools"))
-
-            kptools(
-                "-p",
-                "-s",
-                "123",
-                "-i",
-                "Image",
-                "-k",
-                str(temp / "kpimg"),
-                "-o",
-                "oImage",
-            )
+            patcher()
 
             patched: Path = temp / "oImage"
             if not patched.exists():

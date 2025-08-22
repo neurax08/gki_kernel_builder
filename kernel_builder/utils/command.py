@@ -7,8 +7,9 @@ from kernel_builder.constants import ROOT
 from kernel_builder.utils.fs import FileSystem
 from kernel_builder.utils.log import log
 
-# Baked Commands
-curl: Command = sh.Command("curl").bake("-fsSL", "--retry", "5", "--retry-all-errors")
+curl: Command = sh.Command("curl").bake(
+    "-fsSL", "--retry", "5", "--retry-all-errors", "--retry-delay", "2"
+)
 patch: Command = sh.Command("patch").bake("-p1", "--forward", "--fuzz=3")
 aria2c: Command = sh.Command("aria2c").bake(
     "-x16", "-s32", "-k8M", "--file-allocation=falloc", "--timeout=60", "--retry-wait=5"

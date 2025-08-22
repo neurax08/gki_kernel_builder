@@ -8,15 +8,6 @@ from kernel_builder.utils.log import log
 
 class FileSystem:
     @staticmethod
-    def is_subpath(parent: Path, child: Path) -> bool:
-        try:
-            child = child.resolve()
-            parent = parent.resolve()
-            return parent in child.parents or child == parent
-        except FileNotFoundError:
-            return False
-
-    @staticmethod
     def relative_to(base: Path, path: Path) -> Path:
         try:
             return path.relative_to(base)
@@ -63,12 +54,9 @@ class FileSystem:
         """
         if path.exists():
             if path.is_dir():
-                log(f"Removing existing directory: {path}")
                 shutil.rmtree(path)
             else:
-                log(f"Removing file/symlink: {path}")
                 path.unlink()
-        log(f"Creating path: {path}")
         FileSystem.mkdir(path)
 
 

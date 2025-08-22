@@ -65,22 +65,3 @@ class TestRelativeTo:
     def test_nonexistent_child(self, tmp_path: Path) -> None:
         child: Path = tmp_path / "foo" / "bar"
         assert FileSystem.relative_to(tmp_path, child) == Path("foo/bar")
-
-
-class TestIsSubPath:
-    def test_child(self, tmp_path: Path) -> None:
-        parent: Path = tmp_path
-        child: Path = tmp_path / "a" / "b" / "c"
-        child.mkdir(parents=True)
-        assert FileSystem.is_subpath(parent, child)
-
-    def test_equal(self, tmp_path: Path) -> None:
-        assert FileSystem.is_subpath(tmp_path, tmp_path)
-
-    def test_nonexistent_within(self, tmp_path: Path) -> None:
-        child = tmp_path / "foo" / "bar"
-        assert FileSystem.is_subpath(tmp_path, child)
-
-    def test_nonexistent_path(self, tmp_path: Path) -> None:
-        child: Path = Path("foo/bar")
-        assert not FileSystem.is_subpath(tmp_path, child)
