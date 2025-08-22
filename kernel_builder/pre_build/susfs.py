@@ -2,15 +2,13 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import override
 
 from kernel_builder.constants import WILD_PATCHES, WORKSPACE
-from kernel_builder.interface.patcher import PatcherInterface
 from kernel_builder.utils.command import apply_patch
 from kernel_builder.utils.log import log
 
 
-class SUSFSPatcher(PatcherInterface):
+class SUSFSPatcher:
     def __init__(self, ksu: str, susfs: bool) -> None:
         self.ksu_variant: str = ksu
         self.susfs: bool = susfs
@@ -31,7 +29,6 @@ class SUSFSPatcher(PatcherInterface):
                 continue
             apply_patch(patch_file, check=False, cwd=target)
 
-    @override
     def apply(self) -> None:
         if self.ksu_variant == "NONE" or not self.susfs:
             return

@@ -75,7 +75,7 @@ def test_clean(tmp_path: Path, clean_init) -> None:
     result: Result = runner.invoke(app, ["clean"])
     fake: Path = tmp_path / "out_dir"
     root = fake / "fake_root"
-    out  = fake / "fake_out"
+    out = fake / "fake_out"
 
     assert result.exit_code == 0
     assert result.output.strip() == "Cleanup completed!"

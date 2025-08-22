@@ -132,7 +132,7 @@ jobs:
           NOTIFY: ${{ inputs.NOTIFY }}
         run: |
           ret=0
-          
+
           error() {
             echo "::error::$*"
             (( ret+=1 ))
@@ -143,7 +143,7 @@ jobs:
           [[ "$NOTIFY" == "true" && -z "$TG_CHAT_ID"  ]]  && error "Missing TG_CHAT_ID (Telegram Chat ID)"
           [[ "$NOTIFY" == "true" && -z "$TG_BOT_TOKEN" ]] && error "Missing TG_BOT_TOKEN (Telegram Bot Token)"
           [[ -z "$GH_TOKEN" ]]                            && error "Missing GH_TOKEN (Github PAT)"
- 
+
           if (( ret )); then
             echo "::error::Required secrets are missing. Please refer to README.md for proper configuration."
             exit $ret

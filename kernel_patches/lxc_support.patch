@@ -125,15 +125,15 @@ index a71a08872dd8..dcfebb558651 100644
  	const unsigned long cookies_mask = KBASE_COOKIE_MASK;
  	int err = 0;
 +	struct task_struct *task;
- 
+
  	/* creating a context is considered a disjoint event */
  	kbase_disjoint_event(kctx->kbdev);
 @@ -149,30 +150,19 @@ int kbase_context_common_init(struct kbase_context *kctx)
- 
+
  	/* Check if this is a Userspace created context */
  	if (likely(kctx->filp)) {
 -		struct pid *pid_struct;
- 
+
  		rcu_read_lock();
 -		pid_struct = find_get_pid(kctx->tgid);
 -		if (likely(pid_struct)) {
@@ -174,14 +174,14 @@ index 36116cd1537f..be775f5c4b2e 100644
 +++ b/fs/overlayfs/util.c
 @@ -143,9 +143,7 @@ bool ovl_dentry_weird(struct dentry *dentry)
  		return true;
- 
+
  	return dentry->d_flags & (DCACHE_NEED_AUTOMOUNT |
 -				  DCACHE_MANAGE_TRANSIT |
 -				  DCACHE_OP_HASH |
 -				  DCACHE_OP_COMPARE);
 +				  DCACHE_MANAGE_TRANSIT);
  }
- 
+
  enum ovl_path_type ovl_path_type(struct dentry *dentry)
 diff --git a/include/linux/sched.h b/include/linux/sched.h
 index 97436ce3c4cf..e5042b10cb33 100644
@@ -189,7 +189,7 @@ index 97436ce3c4cf..e5042b10cb33 100644
 +++ b/include/linux/sched.h
 @@ -971,8 +971,10 @@ struct task_struct {
  	struct nameidata		*nameidata;
- 
+
  #ifdef CONFIG_SYSVIPC
 -	struct sysv_sem			sysvsem;
 -	struct sysv_shm			sysvshm;
@@ -216,7 +216,7 @@ index 97436ce3c4cf..e5042b10cb33 100644
  	ANDROID_KABI_RESERVE(7);
  	ANDROID_KABI_RESERVE(8);
 +#endif
- 
+
  	/*
  	 * New fields for task_struct should be added above here, so that
 diff --git a/include/linux/sched/user.h b/include/linux/sched/user.h
@@ -235,7 +235,7 @@ index 6d63a5260130..b96fe706b5ef 100644
 @@ -44,9 +44,15 @@ struct user_struct {
  	/* Miscellaneous per-user rate limit */
  	struct ratelimit_state ratelimit;
- 
+
 +#if defined(CONFIG_POSIX_MQUEUE)
 +	ANDROID_KABI_USE(1, unsigned long mq_bytes);
 +	ANDROID_KABI_RESERVE(2);
@@ -246,7 +246,7 @@ index 6d63a5260130..b96fe706b5ef 100644
  	ANDROID_OEM_DATA_ARRAY(1, 2);
 +#endif
  };
- 
+
  extern int uids_sysfs_init(void);
 diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
 index 016939a9c6dc..9a1734254a8a 100644
@@ -260,6 +260,6 @@ index 016939a9c6dc..9a1734254a8a 100644
 +				snprintf(name, CGROUP_FILE_NAME_MAX, "%s.%s", cft->ss->name, cft->name);
 +				kernfs_create_link(cgrp->kn, name, kn);
 +	}
- 
+
  	return 0;
  }
