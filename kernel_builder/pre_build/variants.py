@@ -4,8 +4,8 @@ from kernel_builder.utils.log import log
 class Variants:
     def __init__(self, ksu: str, susfs: bool, lxc: bool) -> None:
         self.ksu: str = ksu
-        self.lxc: bool = susfs
-        self.susfs: bool = lxc
+        self.lxc: bool = lxc
+        self.susfs: bool = susfs
 
     @property
     def variant_name(self) -> list[str]:
