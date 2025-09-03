@@ -19,8 +19,9 @@ def _config(
         f"{'Enabling' if mode else 'Disabling'} config: {conf} (file={simplified_target})"
     )
 
+
 def _lto() -> None:
-    _config("CONFIG_LTO_CLANG", True) # Enable LTO
+    _config("CONFIG_LTO_CLANG", True)  # Enable LTO
 
     if LTO == "thin":
         _config("CONFIG_LTO_CLANG_THIN", True)
@@ -28,6 +29,7 @@ def _lto() -> None:
     else:
         _config("CONFIG_LTO_CLANG_THIN", False)
         _config("CONFIG_LTO_CLANG_FULL", True)
+
 
 def configurator() -> None:
     parser: VariantsParser = VariantsParser(VARIANT_JSON)

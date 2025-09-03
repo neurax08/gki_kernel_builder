@@ -21,40 +21,40 @@ on:
 
     outputs:
       output:
-        description: 'Output directory'
+        description: "Output directory"
         value: ${{ jobs.build.outputs.output }}
       version:
-        description: 'Kernel version'
+        description: "Kernel version"
         value: ${{ jobs.build.outputs.version }}
       variant:
-        description: 'Variant suffix'
+        description: "Variant suffix"
         value: ${{ jobs.build.outputs.variant }}
       susfs_version:
-        description: 'SUSFS version'
+        description: "SUSFS version"
         value: ${{ jobs.build.outputs.susfs_version }}
       official_version:
-        description: 'Official KernelSU version'
+        description: "Official KernelSU version"
         value: ${{ jobs.build.outputs.official_version }}
       suki_version:
-        description: 'SukiSU Ultra version'
+        description: "SukiSU Ultra version"
         value: ${{ jobs.build.outputs.suki_version }}
       next_version:
-        description: 'KernelSU Next version'
+        description: "KernelSU Next version"
         value: ${{ jobs.build.outputs.next_version }}
       toolchain:
-        description: 'Toolchain'
+        description: "Toolchain"
         value: ${{ jobs.build.outputs.toolchain }}
       build_time:
-        description: 'Build timestamp'
+        description: "Build timestamp"
         value: ${{ jobs.build.outputs.build_time }}
       release_repo:
-        description: 'Release repo'
+        description: "Release repo"
         value: ${{ jobs.build.outputs.release_repo }}
       release_branch:
-        description: 'Release branch'
+        description: "Release branch"
         value: ${{ jobs.build.outputs.release_branch }}
       kernel_name:
-        description: 'Kernel name'
+        description: "Kernel name"
         value: ${{ jobs.build.outputs.kernel_name }}
 
   workflow_dispatch:
@@ -95,23 +95,23 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      output:           ${{ steps.import_env.outputs.output }}
-      version:          ${{ steps.import_env.outputs.version }}
-      variant:          ${{ steps.import_env.outputs.variant }}
-      susfs_version:    ${{ steps.import_env.outputs.susfs_version }}
+      output: ${{ steps.import_env.outputs.output }}
+      version: ${{ steps.import_env.outputs.version }}
+      variant: ${{ steps.import_env.outputs.variant }}
+      susfs_version: ${{ steps.import_env.outputs.susfs_version }}
       official_version: ${{ steps.import_env.outputs.official_version }}
-      suki_version:     ${{ steps.import_env.outputs.suki_version }}
-      next_version:     ${{ steps.import_env.outputs.next_version }}
-      toolchain:        ${{ steps.import_env.outputs.toolchain }}
-      build_time:       ${{ steps.import_env.outputs.build_time }}
-      release_repo:     ${{ steps.import_env.outputs.release_repo }}
-      release_branch:   ${{ steps.import_env.outputs.release_branch }}
-      kernel_name:      ${{ steps.import_env.outputs.kernel_name }}
+      suki_version: ${{ steps.import_env.outputs.suki_version }}
+      next_version: ${{ steps.import_env.outputs.next_version }}
+      toolchain: ${{ steps.import_env.outputs.toolchain }}
+      build_time: ${{ steps.import_env.outputs.build_time }}
+      release_repo: ${{ steps.import_env.outputs.release_repo }}
+      release_branch: ${{ steps.import_env.outputs.release_branch }}
+      kernel_name: ${{ steps.import_env.outputs.kernel_name }}
 
     env:
-        TG_CHAT_ID:   ${{ secrets.TG_CHAT_ID }}
-        TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-        GH_TOKEN:     ${{ secrets.GH_TOKEN }}
+      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Fail SUSFS requirement check
         if: ${{ inputs.SUSFS == 'true' && inputs.KSU == 'NONE' }}
@@ -152,7 +152,7 @@ jobs:
       - name: astral-sh/setup-uv
         uses: astral-sh/setup-uv@v6.6.0
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           enable-cache: true
           cache-suffix: "gki-builder"
           cache-dependency-glob: |
@@ -191,11 +191,11 @@ jobs:
 
       - name: Build
         env:
-          KSU:   ${{ inputs.KSU }}
+          KSU: ${{ inputs.KSU }}
           SUSFS: ${{ inputs.SUSFS }}
-          LXC:   ${{ inputs.LXC }}
+          LXC: ${{ inputs.LXC }}
         run: |
-          uv run cli.py build
+          ./cli.sh build
 
       - name: Show ccache stats
         run: ccache -s
@@ -235,18 +235,18 @@ jobs:
       - name: Notify Telegram
         if: ${{ inputs.NOTIFY == 'true' }}
         env:
-          VERSION:           ${{ env.version }}
-          BUILD_DATE:        ${{ env.build_time }}
-          KSU_VARIANT:       ${{ inputs.KSU }}
-          LXC:               ${{ inputs.LXC }}
-          SUSFS:             ${{ inputs.SUSFS }}
-          SUSFS_VERSION:     ${{ env.susfs_version }}
-          KSU_VERSION:       ${{ env.ksu_version }}
-          TOOLCHAIN:         ${{ env.toolchain }}
-          KERNEL_NAME:       ${{ env.kernel_name }}
+          VERSION: ${{ env.version }}
+          BUILD_DATE: ${{ env.build_time }}
+          KSU_VARIANT: ${{ inputs.KSU }}
+          LXC: ${{ inputs.LXC }}
+          SUSFS: ${{ inputs.SUSFS }}
+          SUSFS_VERSION: ${{ env.susfs_version }}
+          KSU_VERSION: ${{ env.ksu_version }}
+          TOOLCHAIN: ${{ env.toolchain }}
+          KERNEL_NAME: ${{ env.kernel_name }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID:     ${{ github.run_id }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           RUN_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           case "$KSU_VARIANT" in

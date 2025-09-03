@@ -33,20 +33,16 @@ class Builder:
             # Arch
             "ARCH": "arm64",
             "SUBARCH": "arm64",
-
             # Kbuild
             "KBUILD_BUILD_USER": BUILD_USER,
             "KBUILD_BUILD_HOST": BUILD_HOST,
-
             # Clang
             "PATH": f"{self.clang_bin}{os.pathsep}{os.getenv('PATH', '')}",
             "CC": "ccache clang",
             "CXX": "ccache clang++",
-
             # Cross compile
             "CLANG_TRIPLE": CLANG_TRIPLE,
             "CROSS_COMPILE": CROSS_COMPILE,
-
             # LLVM
             "LLVM": LLVM,
             "LLVM_IAS": LLVM_IAS,

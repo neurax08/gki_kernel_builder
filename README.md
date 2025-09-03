@@ -23,17 +23,41 @@ Effortlessly building Android Generic Kernel Image (GKI).
 
 ## Requirements
 
-- Ubuntu/Debian-based Linux
-- Python 3.12+
+- Linux
+- Python 3.12
 
-Install dependencies:
+### System packages:
 
-```bash
-sudo apt update
-sudo apt install bc bison ccache curl flex git tar wget aria2 jq
+* Debian-based
 
-python3 -m pip install uv
-```
+  ```bash
+  sudo apt update
+  sudo apt install --no-install-recommends \
+    bc bison ccache curl flex git tar wget aria2 jq make
+  ```
+
+* Fedora
+
+  ```bash
+  sudo dnf install bc bison ccache curl flex git tar wget aria2 jq make
+  ```
+
+### Install uv (python package manager):
+
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  uv --version
+  ```
+
+### Ensure Python 3.12 installed
+
+  >[!NOTE]
+  > If your distro already ships Python 3.12, you can skip this step.
+
+  ```bash
+  uv python install 3.12
+  uv run -p 3.12 -- python -V    # should print 3.12.x
+  ```
 
 ---
 
@@ -57,7 +81,7 @@ python3 -m pip install uv
 
 ## Build the kernel
 
-Builds are performed via the custom wrapper script `cli.py`
+Builds are performed via the custom wrapper script `cli.sh`
 
 ### Setup Environment
 
@@ -72,7 +96,7 @@ Builds are performed via the custom wrapper script `cli.py`
 To build your kernel with default configuration:
 
 ```bash
-uv run cli.py build
+./cli.sh build
 ```
 
 ### CLI Structure
@@ -86,7 +110,7 @@ The CLI consists of the following commands:
 View all available options:
 
 ```bash
-uv run cli.py --help
+./cli.sh --help
 ```
 
 ### Example Commands
@@ -94,13 +118,13 @@ uv run cli.py --help
 Build KernelSU NEXT with SUSFS (no LXC):
 
 ```bash
-uv run cli.py build -k NEXT -s
+./cli.sh build -k NEXT -s
 ```
 
 Build SukiSU with LXC without SUSFS:
 
 ```bash
-uv run cli.py build --ksu SUKI --no-susfs --lxc
+./cli.sh build --ksu SUKI --no-susfs --lxc
 ```
 
 ---
@@ -138,7 +162,7 @@ Customize your build by:
 - `kernel_builder.py` – The main script responsible for orchestrating the build.
 
 > [!NOTE]
-> See the dedicated guide for more information: [Kernel Builder Configuration guide](https://github.com/bachnxuan/gki_kernel_builder/tree/master/kernel_builder/config)
+> See the dedicated guide for more information: [Kernel Builder Configuration guide](https://github.com/ESK-Project/gki_kernel_builder/tree/master/kernel_builder/config)
 
 ---
 
