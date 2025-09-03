@@ -22,12 +22,6 @@ class SUSFSPatcher:
             else:
                 shutil.copy2(src_path, dst_path)
 
-    def _apply_patch_folder(self, path: Path, target: Path) -> None:
-        for patch_file in path.iterdir():
-            if patch_file.suffix != ".patch":
-                continue
-            apply_patch(patch_file, check=False, cwd=target)
-
     def apply(self) -> None:
         if self.ksu_variant == "NONE" or not self.susfs:
             return
