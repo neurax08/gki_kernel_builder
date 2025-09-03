@@ -11,7 +11,6 @@ from .config import ANYKERNEL_BRANCH, ANYKERNEL_REPO, KERNEL_BRANCH, KERNEL_REPO
 #    Example: github.com:bachnxuan/gki_kernel_builder
 #
 # 2. Rules
-#    - Do not include the ".git" suffix
 #    - Do not use git ssh links (only https/http)
 
 Source: TypeAlias = Final[dict[str, str]]

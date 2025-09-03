@@ -28,8 +28,7 @@ github.com:bachnxuan/gki_kernel_builder
 
 ### 1.2 Rules
 
-* *Do **not** append* `.git`.
-* Use **HTTPS** format only, SSH URLs are **not** accepted (`git@…` will break the parser).
+* Use **HTTPS** format only, SSH are **not** accepted (`git@…` will break the parser).
 
 ---
 
