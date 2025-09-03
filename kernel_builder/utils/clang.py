@@ -25,8 +25,12 @@ NEUTRON_CLANG: Final[str] = (
     "https://api.github.com/repos/Neutron-Toolchains/clang-build-catalogue/releases/latest"
 )
 
-fetch_clang: partial[str] = partial(
+# Partials
+fetch_clang_tgz: partial[str] = partial(
     GithubAPI().fetch_latest_download_url, extension=".tar.gz"
+)
+fetch_clang_tzst: partial[str] = partial(
+    GithubAPI().fetch_latest_download_url, extension=".tar.zst"
 )
 
 
@@ -50,16 +54,16 @@ def fetch_clang_url(variants: str) -> str:
                 )
             ).strip()
         case "AOSP":
-            return fetch_clang(AOSP_CLANG)
+            return fetch_clang_tgz(AOSP_CLANG)
         case "RV":
-            return fetch_clang(RV_CLANG)
+            return fetch_clang_tgz(RV_CLANG)
         case "YUKI":
-            return fetch_clang(YUKI_CLANG)
+            return fetch_clang_tgz(YUKI_CLANG)
         case "LILIUM":
-            return fetch_clang(LILIUM_CLANG)
+            return fetch_clang_tgz(LILIUM_CLANG)
         case "TNF":
-            return fetch_clang(TNF_CLANG)
+            return fetch_clang_tgz(TNF_CLANG)
         case "NEUTRON":
-            return GithubAPI().fetch_latest_download_url(NEUTRON_CLANG, "tar.zst")
+            return fetch_clang_tzst(NEUTRON_CLANG)
         case _:
             raise Exception("Unknown clang variant")
