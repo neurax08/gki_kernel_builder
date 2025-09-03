@@ -63,8 +63,7 @@ KERNEL: Source = {
 ## 3 · Variants Configuration (`variants.json`)
 
 > [!NOTE]
-> `variants.json` tells the builder which Kconfig tweaks to apply for a given environment.\
-Flow: CLI → env vars → scan variants.json → pick first entry whose env keys all match → feed that entry's config dict to `config` to enable/disable items in .config.
+> `variants.json` is a Kconfig fragment for multiple variants.
 
 ```json
 {
