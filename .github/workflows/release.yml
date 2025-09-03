@@ -11,19 +11,24 @@ jobs:
     strategy:
       matrix:
         variant:
-          - { name: "Non-KSU",          KSU: "NONE",     SUSFS: "false", LXC: "false" }
-          - { name: "Non-KSU-LXC",      KSU: "NONE",     SUSFS: "false", LXC: "true"  }
-          - { name: "KSU",              KSU: "OFFICIAL", SUSFS: "false", LXC: "false" }
-          - { name: "KSU-SUSFS",        KSU: "OFFICIAL", SUSFS: "true",  LXC: "false" }
-          - { name: "KSU-LXC",          KSU: "OFFICIAL", SUSFS: "false", LXC: "true"  }
-          - { name: "KSUN",             KSU: "NEXT",     SUSFS: "false", LXC: "false" }
-          - { name: "KSUN-SUSFS",       KSU: "NEXT",     SUSFS: "true",  LXC: "false" }
-          - { name: "KSUN-LXC",         KSU: "NEXT",     SUSFS: "false", LXC: "true"  }
-          - { name: "KSUN-SUSFS-LXC",   KSU: "NEXT",     SUSFS: "true",  LXC: "true"  }
-          - { name: "SUKISU",           KSU: "SUKI",     SUSFS: "false", LXC: "false" }
-          - { name: "SUKISU-SUSFS",     KSU: "SUKI",     SUSFS: "true",  LXC: "false" }
-          - { name: "SUKISU-LXC",       KSU: "SUKI",     SUSFS: "false", LXC: "true"  }
-          - { name: "SUKISU-SUSFS-LXC", KSU: "SUKI",     SUSFS: "true",  LXC: "true"  }
+          - { name: "Non-KSU", KSU: "NONE", SUSFS: "false", LXC: "false" }
+          - { name: "Non-KSU-LXC", KSU: "NONE", SUSFS: "false", LXC: "true" }
+          - { name: "KSU", KSU: "OFFICIAL", SUSFS: "false", LXC: "false" }
+          - { name: "KSU-SUSFS", KSU: "OFFICIAL", SUSFS: "true", LXC: "false" }
+          - { name: "KSU-LXC", KSU: "OFFICIAL", SUSFS: "false", LXC: "true" }
+          - { name: "KSUN", KSU: "NEXT", SUSFS: "false", LXC: "false" }
+          - { name: "KSUN-SUSFS", KSU: "NEXT", SUSFS: "true", LXC: "false" }
+          - { name: "KSUN-LXC", KSU: "NEXT", SUSFS: "false", LXC: "true" }
+          - { name: "KSUN-SUSFS-LXC", KSU: "NEXT", SUSFS: "true", LXC: "true" }
+          - { name: "SUKISU", KSU: "SUKI", SUSFS: "false", LXC: "false" }
+          - { name: "SUKISU-SUSFS", KSU: "SUKI", SUSFS: "true", LXC: "false" }
+          - { name: "SUKISU-LXC", KSU: "SUKI", SUSFS: "false", LXC: "true" }
+          - {
+              name: "SUKISU-SUSFS-LXC",
+              KSU: "SUKI",
+              SUSFS: "true",
+              LXC: "true",
+            }
     name: Build ${{ matrix.variant.name }} variant
     uses: ./.github/workflows/build.yml
     secrets: inherit
@@ -38,18 +43,18 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      OUTPUT_DIR:     ${{ needs.build.outputs.output }}
-      KERNEL_VER:     ${{ needs.build.outputs.version }}
-      VARIANT:        ${{ needs.build.outputs.variant }}
-      SUSFS_VER:      ${{ needs.build.outputs.susfs_version }}
-      KSU_VER:        ${{ needs.build.outputs.official_version }}
-      SUKI_VER:       ${{ needs.build.outputs.suki_version }}
-      NEXT_VER:       ${{ needs.build.outputs.next_version }}
-      TOOLCHAIN:      ${{ needs.build.outputs.toolchain }}
-      BUILD_DATE:     ${{ needs.build.outputs.build_time }}
-      RELEASE_REPO:   ${{ needs.build.outputs.release_repo }}
+      OUTPUT_DIR: ${{ needs.build.outputs.output }}
+      KERNEL_VER: ${{ needs.build.outputs.version }}
+      VARIANT: ${{ needs.build.outputs.variant }}
+      SUSFS_VER: ${{ needs.build.outputs.susfs_version }}
+      KSU_VER: ${{ needs.build.outputs.official_version }}
+      SUKI_VER: ${{ needs.build.outputs.suki_version }}
+      NEXT_VER: ${{ needs.build.outputs.next_version }}
+      TOOLCHAIN: ${{ needs.build.outputs.toolchain }}
+      BUILD_DATE: ${{ needs.build.outputs.build_time }}
+      RELEASE_REPO: ${{ needs.build.outputs.release_repo }}
       RELEASE_BRANCH: ${{ needs.build.outputs.release_branch }}
-      KERNEL_NAME:    ${{ needs.build.outputs.kernel_name }}
+      KERNEL_NAME: ${{ needs.build.outputs.kernel_name }}
 
     steps:
       - name: Checkout current repo
@@ -133,6 +138,6 @@ jobs:
 
             > [!IMPORTANT]
             > For installation instructions and issue reporting guidelines, please refer to the README.md
-          generate_release_notes: true
+          generate_release_notes: false
           target_commitish: ${{ env.RELEASE_BRANCH }}
           files: release_files/**/*
