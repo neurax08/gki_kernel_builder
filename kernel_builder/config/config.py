@@ -9,6 +9,7 @@ DEFCONFIG: Final[str] = "gki_defconfig"
 BUILD_USER: Final[str] = "gki-builder"
 BUILD_HOST: Final[str] = "esk"
 IMAGE_COMP: Final[Literal["raw", "lz4", "gz"]] = "gz"
+LTO: Literal["thin", "full"] = "thin"
 
 # ---- Kernel
 KERNEL_REPO: Final[str] = "github.com:ESK-Project/android_kernel_xiaomi_mt6895"

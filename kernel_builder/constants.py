@@ -15,8 +15,5 @@ VARIANT_JSON: Final[Path] = SRC / "config" / "variants.json"
 # Compiler
 LLVM: Final[str] = "1"
 LLVM_IAS: Final[str] = "1"
-LTO_CLANG_THIN: Final[str] = "y"
-LTO_CLANG_FULL: Final[str] = "n"
-
 CLANG_TRIPLE: Final[str] = "aarch64-linux-gnu-"
 CROSS_COMPILE: Final[str] = "aarch64-linux-gnu-"

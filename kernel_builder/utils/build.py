@@ -12,8 +12,6 @@ from kernel_builder.constants import (
     CROSS_COMPILE,
     LLVM,
     LLVM_IAS,
-    LTO_CLANG_FULL,
-    LTO_CLANG_THIN,
     TOOLCHAIN,
     WORKSPACE,
 )
@@ -31,23 +29,30 @@ class Builder:
         self.image_comp: str = IMAGE_COMP
         self.jobs: int = cpu_count() or 1
 
-        overrides = {
+        BUILD_ENV_OVERRIDES = {
+            # Arch
             "ARCH": "arm64",
             "SUBARCH": "arm64",
+
+            # Kbuild
             "KBUILD_BUILD_USER": BUILD_USER,
             "KBUILD_BUILD_HOST": BUILD_HOST,
+
+            # Clang
             "PATH": f"{self.clang_bin}{os.pathsep}{os.getenv('PATH', '')}",
             "CC": "ccache clang",
             "CXX": "ccache clang++",
+
+            # Cross compile
             "CLANG_TRIPLE": CLANG_TRIPLE,
             "CROSS_COMPILE": CROSS_COMPILE,
+
+            # LLVM
             "LLVM": LLVM,
             "LLVM_IAS": LLVM_IAS,
-            "CONFIG_LTO_CLANG_THIN": LTO_CLANG_THIN,
-            "CONFIG_LTO_CLANG_FULL": LTO_CLANG_FULL,
             "LD": str(self.clang_bin / "ld.lld"),
         }
-        self.make_env: dict[str, str] = {**os.environ, **overrides}
+        self.make_env: dict[str, str] = {**os.environ, **BUILD_ENV_OVERRIDES}
 
     def _make(
         self, args: list[str] | None = None, *, jobs: int, out: str | Path
