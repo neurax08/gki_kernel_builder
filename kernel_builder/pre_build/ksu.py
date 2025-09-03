@@ -29,7 +29,10 @@ class KSUInstaller:
             url = self.source.git_simplifier(url)
 
         # Fetch latest tag
-        user, repo = url.split(":", 1)[1].split("/", 1)
+        if "KernelSU-Next" in url:
+            user, repo = "KernelSU-Next", "KernelSU-Next"
+        else:
+            user, repo = url.split(":", 1)[1].split("/", 1)
         latest_tag: str = self._fetch_latest_tag(user, repo)
         ref = ref or latest_tag
 
@@ -102,8 +105,8 @@ class KSUInstaller:
                 repo = "github.com:tiann/KernelSU"
                 ref = "main"
             case "NEXT":
-                repo = "github.com:KernelSU-Next/KernelSU-Next"
-                ref = "next"
+                repo = "github.com:sidex15/KernelSU-Next"
+                ref = "next-susfs" if self.use_susfs else "next"
             case "SUKI":
                 repo = "github.com:SukiSU-Ultra/SukiSU-Ultra"
                 ref = "susfs-main" if self.use_susfs else "nongki"

@@ -49,11 +49,6 @@ class SUSFSPatcher:
 
         apply_patch(GKI_SUSFS)
 
-        if self.ksu_variant == "NEXT":
-            KSUN_PATH: Path = WORKSPACE / "KernelSU-Next"
-            apply_patch(KSU_SUSFS, check=False, cwd=KSUN_PATH)
-            self._apply_patch_folder(KSUN_SUSFS_FIX, KSUN_PATH)
-
 
 if __name__ == "__main__":
     raise SystemExit("This file is meant to be imported, not executed.")
