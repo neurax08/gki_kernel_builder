@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from dataclasses import dataclass, field
 from re import Pattern
 from urllib.parse import ParseResult, urlparse, urlunparse
@@ -54,9 +55,9 @@ class SourceManager:
         :param repo: Dictionary with keys 'url', 'branch', and 'to'.
         :param depth: Depth of the clone, default is 1.
         :param args: Additional arguments to pass to git clone.
-        :return: Proc
+        :return: None
         """
-        return git.clone(
+        git.clone(
             "--depth",
             str(depth),
             "-b",
@@ -65,6 +66,7 @@ class SourceManager:
             self.restore_simplified(repo["url"]),
             repo["to"],
         )
+        (Path(repo["to"]) / ".git").unlink(missing_ok=True)
 
     def clone_sources(self) -> None:
         """
