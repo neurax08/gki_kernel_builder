@@ -1,9 +1,8 @@
 import os
-import re
 import shutil
 from pathlib import Path
 
-from kernel_builder.constants import WILD_PATCHES, WORKSPACE
+from kernel_builder.constants import WORKSPACE
 from kernel_builder.utils.command import apply_patch
 from kernel_builder.utils.log import log
 
@@ -36,12 +35,7 @@ class SUSFSPatcher:
         os.chdir(WORKSPACE)
 
         SUSFS: Path = WORKSPACE / "susfs4ksu" / "kernel_patches"
-
         GKI_SUSFS: Path = SUSFS / "50_add_susfs_in_gki-android12-5.10.patch"
-        KSU_SUSFS: Path = SUSFS / "KernelSU" / "10_enable_susfs_for_ksu.patch"
-        SUSFS_HEADER: str = (SUSFS / "include" / "linux" / "susfs.h").read_text()
-        VERSION: str = re.search(r"v\d+\.\d+\.\d+", SUSFS_HEADER).group()  # pyright: ignore[reportOptionalMemberAccess]
-        KSUN_SUSFS_FIX: Path = WILD_PATCHES / "next" / "susfs_fix_patches" / VERSION
 
         log("Applying kernel-side SUSFS patches")
         self.copy(SUSFS / "fs", WORKSPACE / "fs")

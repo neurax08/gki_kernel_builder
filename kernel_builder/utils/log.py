@@ -1,8 +1,6 @@
 import logging
-import re
 from logging import FileHandler, Filter, Handler, Logger, LogRecord
 from pathlib import Path
-from re import Match, Pattern
 from typing import override
 
 from rich.console import Console
@@ -13,22 +11,10 @@ console: Console = Console(color_system="auto")
 
 
 class ShFilter(Filter):
-    _COMMAND: Pattern[str] = re.compile(r"<Command '(.*?)'(?:, pid (\d+))?>")
-
     @override
     def filter(self, record: LogRecord):
         if record.name.startswith("sh"):
-            msg = record.getMessage()
-            if msg.endswith(": process started"):
-                msg = msg[: -len(": process started")]
-
-            m: Match[str] | None = self._COMMAND.search(msg)
-            if m:
-                cmd, _ = m.group(1), m.group(2)
-                pretty = f"Running: {cmd}"
-                msg = msg.replace(m.group(0), pretty)
-            record.msg = msg
-            record.args = ()
+            return False
         return True
 
 
@@ -81,18 +67,13 @@ def log(message: str, level: str = "info") -> None:
     :return: None
     """
     match level.lower():
-        case "debug":
-            logger.debug(message)
         case "info":
             logger.info(message)
         case "warn" | "warning":
             logger.warning(message)
         case "error":
             logger.error(message)
-        case "critical":
-            logger.critical(message)
         case _:
-            logger.warning("Unknown log level %s; defaulting to INFO", level)
             logger.info(message)
 
 

@@ -7,10 +7,11 @@ from sh import Command, chmod
 
 from kernel_builder.config.config import IMAGE_COMP
 from kernel_builder.constants import WORKSPACE
-from kernel_builder.utils.fs import FileSystem
-from kernel_builder.utils.log import log
-from kernel_builder.utils.github import GithubAPI
 from kernel_builder.utils.command import curl
+from kernel_builder.utils.fs import FileSystem
+from kernel_builder.utils.github import GithubAPI
+from kernel_builder.utils.log import log
+
 
 class KPMPatcher:
     def __init__(self, ksu: str) -> None:
@@ -45,7 +46,7 @@ class KPMPatcher:
 
             latest_kpm_patcher: str = self.gh.fetch_latest_download_url(
                 "https://api.github.com/repos/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest",
-                "patch_linux"
+                "patch_linux",
             )
             curl("-o", str(kpm_patcher_path), latest_kpm_patcher)
             chmod("a+x", str(kpm_patcher_path))
