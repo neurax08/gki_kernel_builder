@@ -1,6 +1,6 @@
 import re
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 from re import Pattern
 from urllib.parse import ParseResult, urlparse, urlunparse
 

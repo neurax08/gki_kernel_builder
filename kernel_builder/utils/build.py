@@ -27,7 +27,7 @@ class Builder:
         self.workspace: Path = WORKSPACE
         self.defconfig: str = DEFCONFIG
         self.image_comp: str = IMAGE_COMP
-        self.jobs: int = cpu_count() or 1
+        self.jobs: int = cpu_count() or 4
 
         BUILD_ENV_OVERRIDES = {
             # Arch
@@ -50,51 +50,44 @@ class Builder:
         }
         self.make_env: dict[str, str] = {**os.environ, **BUILD_ENV_OVERRIDES}
 
-    def _make(
-        self, args: list[str] | None = None, *, jobs: int, out: str | Path
-    ) -> None:
+    def _make(self, args: list[str] | None = None, *, jobs: int) -> None:
         make(
             f"-j{jobs}",
             *(args or []),
-            f"O={out}",
+            "O=out",
             _cwd=Path.cwd(),
             _env={**self.make_env},
             _out=sys.stdout,
             _err=sys.stderr,
         )
 
-    def build(
-        self,
-        jobs: int | None = None,
-        *,
-        out: str | Path = "out",
-    ) -> None:
+    def build(self, jobs: int | None = None) -> None:
         target: str = (
             "Image" if self.image_comp == "raw" else f"Image.{self.image_comp}"
         )
         jobs = jobs or self.jobs
-        log(
-            f"Start build: {self.defconfig=}, {out=}, {jobs or self.jobs=}, {self.image_comp=}"
-        )
-        self._make([self.defconfig], jobs=jobs, out=out)
+        log(f"Start build: {self.defconfig=}, {jobs or self.jobs=}, {self.image_comp=}")
+        self._make([self.defconfig], jobs=jobs)
 
         configurator()
 
         log("Making olddefconfig")
-        self._make(["olddefconfig"], jobs=jobs, out=out)
+        self._make(["olddefconfig"], jobs=jobs)
 
-        log("Defconfig completed. Starting full build.")
-        self._make([target, "modules"], jobs=jobs, out=out)
+        log("Starting full build.")
+        self._make([target, "modules"], jobs=jobs)
         log("Build completed successfully.")
 
     def get_kernel_version(self) -> str:
         log("Fetching kernel version...")
         makefile: str = (self.workspace / "Makefile").read_text()
-        version = re.findall(
-            r"^(?:VERSION|PATCHLEVEL|SUBLEVEL)\s*=\s*(\d+)$", makefile, re.MULTILINE
-        )
-        assert version, "Unable to determine kernel version"
-        return ".".join(version[:3])
+        version: dict[str, str] = dict(re.findall(
+            r"^(?:VERSION|PATCHLEVEL|SUBLEVEL)\s*=\s*(\d+)$", makefile, re.M
+        ))
+        required = {"VERSION","PATCHLEVEL","SUBLEVEL"}
+        if not required.issubset(version):
+            raise RuntimeError("Unable to determine kernel version")
+        return f"{version['VERSION']}.{version['PATCHLEVEL']}.{version['SUBLEVEL']}"
 
 
 if __name__ == "__main__":
