@@ -81,10 +81,10 @@ class Builder:
     def get_kernel_version(self) -> str:
         log("Fetching kernel version...")
         makefile: str = (self.workspace / "Makefile").read_text()
-        version: dict[str, str] = dict(re.findall(
-            r"^(?:VERSION|PATCHLEVEL|SUBLEVEL)\s*=\s*(\d+)$", makefile, re.M
-        ))
-        required = {"VERSION","PATCHLEVEL","SUBLEVEL"}
+        version: dict[str, str] = dict(
+            re.findall(r"^(VERSION|PATCHLEVEL|SUBLEVEL)\s*=\s*(\d+)$", makefile, re.M)
+        )
+        required = {"VERSION", "PATCHLEVEL", "SUBLEVEL"}
         if not required.issubset(version):
             raise RuntimeError("Unable to determine kernel version")
         return f"{version['VERSION']}.{version['PATCHLEVEL']}.{version['SUBLEVEL']}"

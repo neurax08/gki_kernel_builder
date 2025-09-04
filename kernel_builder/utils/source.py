@@ -1,8 +1,8 @@
 import re
-from shutil import rmtree
 from dataclasses import dataclass, field
 from pathlib import Path
 from re import Pattern
+from shutil import rmtree
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 import requests
