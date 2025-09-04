@@ -60,6 +60,8 @@ class SourceManager:
         git.clone(
             "--depth",
             str(depth),
+            "--single-branch",
+            "--no-tags",
             "-b",
             repo["branch"],
             *(args or []),
