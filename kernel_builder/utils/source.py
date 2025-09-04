@@ -1,4 +1,5 @@
 import re
+from shutil import rmtree
 from dataclasses import dataclass, field
 from pathlib import Path
 from re import Pattern
@@ -46,6 +47,20 @@ class SourceManager:
             url = urlunparse(("https", host, "/" + repo, "", "", ""))
         return url
 
+    def _strip_git_dotfiles(self, parent: Path) -> None:
+        SAFE_GIT_DOTFILES = [
+            parent / ".git",
+            parent / ".github",
+        ]
+
+        for path in SAFE_GIT_DOTFILES:
+            if not path.exists():
+                continue
+            elif path.is_dir():
+                rmtree(path)
+            else:
+                path.unlink(missing_ok=True)
+
     def clone_repo(
         self, repo: dict[str, str], *, depth: int = 1, args: list[str] | None = None
     ) -> None:
@@ -68,7 +83,8 @@ class SourceManager:
             self.restore_simplified(repo["url"]),
             repo["to"],
         )
-        (Path(repo["to"]) / ".git").unlink(missing_ok=True)
+        # Strip git dotfiles
+        self._strip_git_dotfiles(Path(repo["to"]))
 
     def clone_sources(self) -> None:
         """
