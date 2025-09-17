@@ -162,7 +162,7 @@ jobs:
       - name: Create venv & Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -qq bc bison ccache curl flex git tar wget aria2
+          sudo apt-get install -qq bc bison ccache curl flex git tar wget aria2 build-essential
 
           uv venv
           uv sync --frozen --no-install-project
@@ -170,35 +170,40 @@ jobs:
       - name: Prepare ccache
         run: |
           echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
-          echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.ccache"
-          ccache --version
+          ccache --set-config=compiler_check=content
+          ccache --set-config=hash_dir=false
+          ccache --set-config=sloppiness=file_macro,include_file_ctime,include_file_mtime,time_macros
+          ccache --set-config=direct_mode=true
+          ccache --set-config=max_size=5G
+          ccache --zero-stats
+          ccache --show-config
 
       - name: Restore ccache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ github.job }}-${{ github.ref_name }}
+          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ github.job }}-${{ inputs.LXC }}
-
-      - name: Configure ccache
-        run: |
-          ccache --set-config=max_size=5G
-          ccache --zero-stats
-          ccache --show-config
+            ccache-${{ runner.os }}-${{ github.ref_name }}-
+            ccache-${{ runner.os }}-
 
       - name: Build
         env:
           KSU: ${{ inputs.KSU }}
           SUSFS: ${{ inputs.SUSFS }}
           LXC: ${{ inputs.LXC }}
+          SOURCE_DATE_EPOCH: "1704067200"
         run: |
           ./cli.sh build
 
-      - name: Show ccache stats
-        run: ccache -s
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ inputs.KSU }}-${{ inputs.SUSFS }}-${{ inputs.LXC }}
 
       - name: Import exported environment
         id: import_env
