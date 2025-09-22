@@ -176,18 +176,19 @@ jobs:
           ccache --set-config=hash_dir=false
           ccache --set-config=sloppiness=file_macro,include_file_ctime,include_file_mtime,time_macros
           ccache --set-config=direct_mode=true
-          ccache --set-config=max_size=5G
+          ccache --set-config=max_size=7G
           ccache --zero-stats
           ccache --show-config
+          echo "clang_hash=$(clang --version | sha256sum | cut -c1-10 || echo none)" >> "$GITHUB_ENV"
 
-      - name: Restore ccache
+      - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+          key: ccache-${{ runner.os }}-${{ env.clang_hash }}-${{ inputs.KSU }}-${{ inputs.SUSFS }}-${{ inputs.LXC }}
+          save-always: true
           restore-keys: |
-            ccache-${{ runner.os }}-${{ github.ref_name }}-
-            ccache-${{ runner.os }}-
+            ccache-${{ runner.os }}-${{ env.clang_hash }}-
 
       - name: Build
         env:
@@ -197,14 +198,7 @@ jobs:
           SOURCE_DATE_EPOCH: "1704067200"
         run: |
           ./cli.sh build
-
-      - name: Save ccache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ inputs.KSU }}-${{ inputs.SUSFS }}-${{ inputs.LXC }}
-
+          
       - name: Import exported environment
         id: import_env
         run: |
