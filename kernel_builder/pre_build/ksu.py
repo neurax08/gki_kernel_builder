@@ -73,7 +73,14 @@ class KSUInstaller:
             log(f"Skipping manual hooks patch for variant: {self.variant}")
             return
 
-        hook_patch: Path = PATCHES / "manual_hooks.patch"
+        hook_patch: Path
+
+        # Add syscall hooks v1.5 support for KernelSU Next
+        if self.variant == "NEXT":
+            hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
+        else:
+            hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
+            
         apply_patch(hook_patch, check=False, cwd=WORKSPACE)
 
     def _clean_driver(self) -> None:
@@ -105,7 +112,7 @@ class KSUInstaller:
                 repo = "github.com:tiann/KernelSU"
                 ref = "main"
             case "NEXT":
-                repo = "github.com:sidex15/KernelSU-Next"
+                repo = "github.com:ESK-Project/KernelSU-Next"
                 ref = "next-susfs" if self.use_susfs else "next"
             case "SUKI":
                 repo = "github.com:SukiSU-Ultra/SukiSU-Ultra"
