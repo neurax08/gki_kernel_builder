@@ -79,7 +79,7 @@ class KSUInstaller:
         if self.variant == "NEXT":
             hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
         else:
-            hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
+            hook_patch = PATCHES / "syscall_hooks_v1.4.patch"
             
         apply_patch(hook_patch, check=False, cwd=WORKSPACE)
 
