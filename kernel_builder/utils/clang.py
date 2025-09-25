@@ -1,13 +1,9 @@
 from functools import partial
 from typing import Final
 
-from sh import grep, sed, sort, tail
-
-from kernel_builder.utils.command import curl
 from kernel_builder.utils.github import GithubAPI
 
 # Toolchain Repo
-SLIM_CLANG: Final[str] = "https://www.kernel.org/pub/tools/llvm/files/"
 AOSP_CLANG: Final[str] = (
     "https://api.github.com/repos/bachnxuan/aosp_clang_mirror/releases/latest"
 )
@@ -36,23 +32,6 @@ fetch_clang_tzst: partial[str] = partial(
 
 def fetch_clang_url(variants: str) -> str:
     match variants.upper():
-        case "SLIM":
-            return str(
-                sed(
-                    f"s|^|{SLIM_CLANG}|",
-                    _in=tail(
-                        "-n1",
-                        _in=sort(
-                            "-V",
-                            _in=grep(
-                                "-oP",
-                                r"llvm-[\d.]+-x86_64\.tar\.xz",
-                                _in=curl(SLIM_CLANG),
-                            ),
-                        ),
-                    ),
-                )
-            ).strip()
         case "AOSP":
             return fetch_clang_tgz(AOSP_CLANG)
         case "RV":

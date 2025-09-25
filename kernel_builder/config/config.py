@@ -24,7 +24,7 @@ RELEASE_REPO: Final[str] = "ESK-Project/esk-releases"
 RELEASE_BRANCH: Final[str] = "main"
 
 # ---- Clang
-CLANG_VARIANT: Final[Literal["SLIM", "AOSP", "RV", "YUKI", "LILIUM", "NEUTRON"]] = (
+CLANG_VARIANT: Final[Literal["AOSP", "RV", "YUKI", "LILIUM", "NEUTRON"]] = (
     "AOSP"
 )
 
