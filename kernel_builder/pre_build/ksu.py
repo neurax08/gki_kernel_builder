@@ -69,12 +69,7 @@ class KSUInstaller:
             log(f"Skipping manual hooks patch for variant: {self.variant}")
             return
 
-        hook_patch: Path
-
-        if self.variant == "NEXT":
-            hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
-        else:  # SukiSU
-            hook_patch = PATCHES / "tracepoint_hooks_v1.1.patch"
+        hook_patch: Path = PATCHES / "syscall_hooks_v1.5.patch"
 
         apply_patch(hook_patch, check=False, cwd=WORKSPACE)
 
