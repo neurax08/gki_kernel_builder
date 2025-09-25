@@ -75,11 +75,10 @@ class KSUInstaller:
 
         hook_patch: Path
 
-        # Add syscall hooks v1.5 support for KernelSU Next
         if self.variant == "NEXT":
             hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
-        else:
-            hook_patch = PATCHES / "syscall_hooks_v1.4.patch"
+        else: # SukiSU
+            hook_patch = PATCHES / "tracepoint_hooks_v1.1.patch"
 
         apply_patch(hook_patch, check=False, cwd=WORKSPACE)
 
