@@ -4,7 +4,6 @@ from sh import Command
 
 from kernel_builder.config.config import LTO
 from kernel_builder.constants import VARIANT_JSON, WORKSPACE
-from kernel_builder.utils.fs import FileSystem
 from kernel_builder.utils.log import log
 from kernel_builder.utils.variants_parser import VariantsParser
 
@@ -14,10 +13,7 @@ def _config(
 ) -> None:
     config: Command = Command(str(WORKSPACE / "scripts" / "config"))
     config("--file", str(target), "--enable" if mode else "--disable", conf)
-    simplified_target: Path = FileSystem.relative_to(WORKSPACE, target)
-    log(
-        f"{'Enabling' if mode else 'Disabling'} config: {conf} (file={simplified_target})"
-    )
+    log(f"{'Enabling' if mode else 'Disabling'} config: {conf}")
 
 
 def _lto() -> None:

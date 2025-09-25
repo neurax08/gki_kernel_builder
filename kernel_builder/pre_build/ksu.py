@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -39,9 +38,6 @@ class KSUInstaller:
         # Expose latest KernelSU version to environment
         os.environ["KSU_VERSION"] = latest_tag
 
-        # Cleaning up drivers
-        self._clean_driver()
-
         # Setup KernelSU
         log(f"Installing KernelSU from {url} | {ref}")
         self._run_setup(url, ref)
@@ -77,24 +73,10 @@ class KSUInstaller:
 
         if self.variant == "NEXT":
             hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
-        else: # SukiSU
+        else:  # SukiSU
             hook_patch = PATCHES / "tracepoint_hooks_v1.1.patch"
 
         apply_patch(hook_patch, check=False, cwd=WORKSPACE)
-
-    def _clean_driver(self) -> None:
-        for driver in self.KNOWN_KSU_DRIVER_PATHS:
-            if not driver.exists():
-                return
-            elif driver.is_symlink():
-                log("KernelSU driver symlink detected")
-                target: Path = (driver.parent / driver.readlink()).resolve(strict=False)
-                driver.unlink()
-                if target.exists() and target.is_dir():
-                    shutil.rmtree(target)
-            elif driver.is_dir():
-                log("KernelSU driver folder detected")
-                shutil.rmtree(driver)
 
     def install(self) -> None:
         variant: str = self.variant.upper()

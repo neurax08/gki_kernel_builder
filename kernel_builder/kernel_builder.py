@@ -84,12 +84,13 @@ class KernelBuilder:
         clang: Path = dest / "clang"
 
         aria2c("-d", str(dest), "-o", "tarball", clang_url)
-        FileSystem.reset_path(clang)
+        self.fs.reset_path(clang)
 
-        with tarfile.open(tarball, "r:*") as tar:
-            tar.extractall(clang)
-
-        tarball.unlink()
+        try:
+            with tarfile.open(tarball, "r:*") as tar:
+                tar.extractall(clang, filter="data")
+        finally:
+            tarball.unlink(missing_ok=True)
 
         # Enter workspace
         self.fs.cd(WORKSPACE)
@@ -111,8 +112,10 @@ class KernelBuilder:
 
         # Rename artifacts
         log("Renaming build artifacts...")
-        version: str | None = self.builder.get_kernel_version()
+
+        version: str = self.builder.get_kernel_version()
         suffix: str = self.variants.suffix
+
         anykernel_src: Path = OUTPUT / "AnyKernel3.zip"
         boot_src: Path = OUTPUT / "boot.img"
 

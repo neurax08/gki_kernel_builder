@@ -3,8 +3,6 @@ from pathlib import Path
 import sh
 from sh import Command
 
-from kernel_builder.constants import ROOT
-from kernel_builder.utils.fs import FileSystem
 from kernel_builder.utils.log import log
 
 curl: Command = sh.Command("curl").bake(
@@ -22,7 +20,7 @@ def apply_patch(
     if not patch_file.exists():
         log(f"Patch not found at {patch_file}", "error")
         raise FileNotFoundError()
-    log(f"Patching file: {FileSystem.relative_to(ROOT, patch_file)}")
+    log(f"Patching file: {patch_file}")
     cwd = cwd or Path.cwd()
     data: bytes = patch_file.read_bytes()
     return patch(

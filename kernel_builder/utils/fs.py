@@ -2,38 +2,19 @@ import shutil
 from os import chdir
 from pathlib import Path
 
-from kernel_builder.constants import ROOT
 from kernel_builder.utils.log import log
 
 
 class FileSystem:
     @staticmethod
-    def relative_to(base: Path, path: Path) -> Path:
-        try:
-            return path.relative_to(base)
-        except ValueError:
-            return path
-
-    @staticmethod
-    def mkdir(path: Path) -> None:
-        """
-        Create path and parents if missing (same as mkdir -p).
-
-        :param path: Path to create.
-        :return: None
-        """
-        log(f"Creating directory: {FileSystem.relative_to(ROOT, path)}")
-        path.mkdir(parents=True, exist_ok=True)
-
-    @staticmethod
     def cd(path: Path) -> None:
         """
-        A more verbose wrapper for os.chdir()
+        A wrapper for os.chdir()
 
         :param path: Path to change to.
         :return: None
         """
-        log(f"Changing directory to {FileSystem.relative_to(ROOT, path)}")
+        log(f"Changing directory to {path}")
         if path.exists():
             if path.is_dir():
                 chdir(path)
@@ -57,7 +38,7 @@ class FileSystem:
                 shutil.rmtree(path)
             else:
                 path.unlink()
-        FileSystem.mkdir(path)
+        path.mkdir(parents=True)
 
 
 if __name__ == "__main__":

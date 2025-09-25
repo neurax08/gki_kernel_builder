@@ -48,12 +48,12 @@ class SourceManager:
         return url
 
     def _strip_git_dotfiles(self, parent: Path) -> None:
-        SAFE_GIT_DOTFILES = [
+        GIT_DOTFILES = [
             parent / ".git",
             parent / ".github",
         ]
 
-        for path in SAFE_GIT_DOTFILES:
+        for path in GIT_DOTFILES:
             if not path.exists():
                 continue
             elif path.is_dir():
@@ -96,7 +96,7 @@ class SourceManager:
             log(
                 f"Cloning {source['url']} into {source['to']} on branch {source['branch']}"
             )
-            self.clone_repo(source, args=["--recurse-submodules"])
+            self.clone_repo(source)
 
 
 if __name__ == "__main__":
