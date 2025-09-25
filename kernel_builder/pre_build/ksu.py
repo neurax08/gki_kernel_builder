@@ -80,7 +80,7 @@ class KSUInstaller:
             hook_patch = PATCHES / "syscall_hooks_v1.5.patch"
         else:
             hook_patch = PATCHES / "syscall_hooks_v1.4.patch"
-            
+
         apply_patch(hook_patch, check=False, cwd=WORKSPACE)
 
     def _clean_driver(self) -> None:
@@ -126,4 +126,3 @@ class KSUInstaller:
 
 if __name__ == "__main__":
     raise SystemExit("This file is meant to be imported, not executed.")
-

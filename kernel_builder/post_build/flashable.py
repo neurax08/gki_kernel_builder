@@ -80,9 +80,7 @@ class FlashableBuilder:
         self._stage_image(boot_tmp)
 
         log("Rebuilding boot.img with mkbootimg.py...")
-        image: str = (
-            "Image" if IMAGE_COMP == "raw" else f"Image.{IMAGE_COMP}"
-        )
+        image: str = "Image" if IMAGE_COMP == "raw" else f"Image.{IMAGE_COMP}"
         python(
             str(mkbootimg),
             "--header_version",
